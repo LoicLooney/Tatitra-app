@@ -1,57 +1,57 @@
 package mg.itu.tatitra_app.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+private val SchemaClair = lightColorScheme(
+    primary = BleuTatitra,
     onPrimary = Color.White,
+    primaryContainer = BleuTatitraClair,
+    onPrimaryContainer = BleuTatitraFonce,
+    secondary = BleuTatitraFonce,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    tertiary = JauneTatitra,
+    onTertiary = NoirTatitra,
+    background = GrisSurface,
+    onBackground = NoirTatitra,
+    surface = Color.White,
+    onSurface = NoirTatitra,
+    surfaceVariant = BleuTatitraClair,
+    onSurfaceVariant = GrisTexte,
+    outline = GrisBordure,
+    error = RougeRejet
 )
 
+private val SchemaSombre = darkColorScheme(
+    primary = BleuTatitraNuit,
+    onPrimary = BleuTatitraFonce,
+    primaryContainer = BleuTatitraFonce,
+    onPrimaryContainer = BleuTatitraClair,
+    secondary = BleuTatitraClair,
+    tertiary = JauneTatitra,
+    background = NoirTatitra,
+    onBackground = GrisSurface,
+    surface = SurfaceNuit,
+    onSurface = GrisSurface,
+    outline = GrisTexte,
+    error = RougeRejet
+)
+
+/**
+ * Thème de l'application. La couleur dynamique Android 12+ est volontairement absente :
+ * l'identité visuelle TATITRA doit rester identique d'un téléphone à l'autre pendant la démo.
+ */
 @Composable
 fun TatitraappTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) SchemaSombre else SchemaClair,
         typography = Typography,
         content = content
     )
