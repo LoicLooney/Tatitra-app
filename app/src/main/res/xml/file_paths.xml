@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Photos des signalements : stockage privé de l'application (files/photos). -->
+    <files-path
+        name="photos_signalements"
+        path="photos/" />
+</paths>
