@@ -1,3 +1,6 @@
 node_modules/
 .env
 *.log
+
+# Photos reçues en mode de stockage local (démo sans Supabase)
+uploads/
