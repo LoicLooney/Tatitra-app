@@ -1,8 +1,8 @@
 {
-  "name": "lalana-admin-web",
+  "name": "tatitra-admin-web",
   "private": true,
   "version": "0.1.0",
-  "description": "Interface admin LALANA / Tatitra",
+  "description": "Interface d'administration TATITRA",
   "type": "module",
   "scripts": {
     "dev": "vite",
