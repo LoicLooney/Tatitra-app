@@ -1,13 +1,16 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { requeteApi } from './apiClient';
 
+/** GET /api/signalements — liste complète des signalements reçus. */
 export async function getSignalements() {
-  const res = await fetch(`${API_URL}/api/signalements`);
-  if (!res.ok) throw new Error('Impossible de charger les signalements');
-  return res.json();
+  return requeteApi('/api/signalements');
 }
 
+/** GET /api/signalements/:id — détail d'un signalement. */
+export async function getSignalement(id) {
+  return requeteApi(`/api/signalements/${id}`);
+}
+
+/** GET /health — vérifie que le backend répond (écran Paramètres, conditions de démo). */
 export async function getHealth() {
-  const res = await fetch(`${API_URL}/health`);
-  if (!res.ok) throw new Error('API indisponible');
-  return res.json();
+  return requeteApi('/health');
 }
