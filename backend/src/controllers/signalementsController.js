@@ -1,19 +1,15 @@
 const signalementsService = require('../services/signalementsService');
+const { asyncHandler } = require('../middleware/errorHandler');
 
-exports.lister = async (req, res) => {
-  try {
-    const data = await signalementsService.lister();
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+// GET /api/signalements — liste des signalements (admin Web et rafraîchissement mobile).
+exports.lister = asyncHandler(async (req, res) => {
+  const data = await signalementsService.lister();
+  res.json(data);
+});
 
-exports.creer = async (req, res) => {
-  try {
-    const cree = await signalementsService.creer(req.body);
-    res.status(201).json(cree);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
+// POST /api/signalements — crée un signalement. Corps validé en amont par validerCreationSignalement.
+// Renvoie 201 à la création, 200 si le clientId a déjà été reçu (rejeu de synchronisation).
+exports.creer = asyncHandler(async (req, res) => {
+  const { signalement, cree } = await signalementsService.creer(req.signalementValide);
+  res.status(cree ? 201 : 200).json(signalement);
+});

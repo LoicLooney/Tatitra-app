@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        Build debug uniquement : le backend de démonstration tourne en HTTP sur le
+        réseau local du binôme, son adresse IP change d'une salle à l'autre.
+        Le build release garde la configuration stricte de src/main.
+    -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
