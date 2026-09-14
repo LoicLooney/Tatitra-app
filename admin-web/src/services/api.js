@@ -10,6 +10,18 @@ export async function getSignalement(id) {
   return requeteApi(`/api/signalements/${id}`);
 }
 
+/**
+ * PATCH /api/signalements/:id/statut — change le statut (J3).
+ * @param {string} id UUID serveur
+ * @param {string} statut code métier (ex. PRIS_EN_CHARGE)
+ */
+export async function patchStatut(id, statut) {
+  return requeteApi(`/api/signalements/${id}/statut`, {
+    method: 'PATCH',
+    body: JSON.stringify({ statut }),
+  });
+}
+
 /** GET /health — vérifie que le backend répond (écran Paramètres, conditions de démo). */
 export async function getHealth() {
   return requeteApi('/health');

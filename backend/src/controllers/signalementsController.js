@@ -19,3 +19,12 @@ exports.creer = asyncHandler(async (req, res) => {
   const { signalement, cree } = await signalementsService.creer(req.signalementValide);
   res.status(cree ? 201 : 200).json(signalement);
 });
+
+// PATCH /api/signalements/:id/statut — change le statut (admin). Corps validé en amont.
+exports.changerStatut = asyncHandler(async (req, res) => {
+  const signalement = await signalementsService.mettreAJourStatut(
+    req.params.id,
+    req.statutValide
+  );
+  res.json(signalement);
+});

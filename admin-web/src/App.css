@@ -284,6 +284,22 @@
   font-size: 13px;
 }
 
+.select-statut {
+  font: inherit;
+  font-size: 13px;
+  max-width: 220px;
+  padding: 6px 8px;
+  border: 1px solid var(--bordure);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.cellule-reference {
+  font-size: 12px;
+  word-break: break-all;
+  max-width: 140px;
+}
+
 @media (max-width: 720px) {
   .admin-header,
   .admin-contenu,
