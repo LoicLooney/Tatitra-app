@@ -81,6 +81,9 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     implementation(libs.play.services.location)
 
+    // Préférences persistantes (langue, dernière sync)
+    implementation(libs.androidx.datastore.preferences)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

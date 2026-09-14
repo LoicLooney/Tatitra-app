@@ -16,11 +16,14 @@ class SyncSignalementsWorker(
 ) : CoroutineWorker(context, parametres) {
 
     override suspend fun doWork(): Result {
-        val repository = (applicationContext as TatitraApplication).container.signalementRepository
+        val container = (applicationContext as TatitraApplication).container
+        val repository = container.signalementRepository
+        val preferences = container.preferencesRepository
 
         val resultat = repository.synchroniserEnAttente()
         // Une fois les envois faits, on relit les statuts côté serveur (prise en charge, résolution).
         repository.rafraichirStatuts()
+        preferences.enregistrerDerniereSync()
 
         Log.i(
             TAG,
