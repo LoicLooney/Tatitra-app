@@ -1,14 +1,25 @@
 import { useEffect, useState } from 'react';
 import ConfirmStatutModal from './ConfirmStatutModal';
-import { LIBELLES_CATEGORIE, LIBELLES_STATUT, STATUTS } from '../constants';
-import { getSignalement, patchStatut } from '../services/api';
+import {
+  LIBELLES_CATEGORIE,
+  LIBELLES_STATUT,
+  STATUTS_PROPOSITION_RESOLUTION,
+  STATUTS_TRIAGE_ADMIN,
+  estStatutTriage,
+} from '../constants';
+import {
+  confirmerResolution,
+  getSignalement,
+  patchStatut,
+  proposerResolution,
+  rouvrirResolution,
+} from '../services/api';
 import { getApiUrl } from '../services/apiClient';
 
-const STATUTS_ADMIN = STATUTS.filter((code) => code !== 'EN_ATTENTE_SYNC');
-
 /**
- * Détail d'un signalement (J4) : photo, catégorie, statut + infos utiles.
+ * Détail d'un signalement (J4) + actions résolution (J5).
  * Charge GET /api/signalements/:id pour garantir des données à jour.
+ * Le select ne propose que le triage ; résolution via boutons dédiés.
  */
 function DetailSignalement({ id, onRetour, onStatutChange }) {
   const [signalement, setSignalement] = useState(null);
@@ -17,6 +28,7 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
   const [message, setMessage] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
   const [enregistrementStatut, setEnregistrementStatut] = useState(false);
+  const [actionResolution, setActionResolution] = useState(false);
 
   useEffect(() => {
     let annule = false;
@@ -43,6 +55,7 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
 
   function demanderChangementStatut(nouveauStatut) {
     if (!signalement || nouveauStatut === signalement.statut) return;
+    if (!estStatutTriage(nouveauStatut)) return;
     setConfirmation({
       ancienStatut: signalement.statut,
       nouveauStatut,
@@ -65,6 +78,23 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
       setEnregistrementStatut(false);
     }
   }
+
+  async function executerResolution(action, messageSucces) {
+    setMessage(null);
+    setActionResolution(true);
+    try {
+      const maj = await action();
+      setSignalement(maj);
+      setMessage(messageSucces);
+      onStatutChange?.();
+    } catch (echec) {
+      setMessage(echec.message);
+    } finally {
+      setActionResolution(false);
+    }
+  }
+
+  const occupe = enregistrementStatut || actionResolution || Boolean(confirmation);
 
   return (
     <div className="page">
@@ -97,19 +127,11 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
                 <div>
                   <dt>Statut</dt>
                   <dd>
-                    <select
-                      className="select-statut"
-                      value={signalement.statut}
-                      disabled={enregistrementStatut}
-                      aria-label="Statut du signalement"
-                      onChange={(e) => demanderChangementStatut(e.target.value)}
-                    >
-                      {STATUTS_ADMIN.map((code) => (
-                        <option key={code} value={code}>
-                          {LIBELLES_STATUT[code] || code}
-                        </option>
-                      ))}
-                    </select>
+                    <SelectTriageStatut
+                      statut={signalement.statut}
+                      disabled={occupe}
+                      onDemander={demanderChangementStatut}
+                    />
                   </dd>
                 </div>
                 <div>
@@ -141,7 +163,48 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
                   <dt>Modifié le</dt>
                   <dd>{formaterDate(signalement.updatedAt)}</dd>
                 </div>
+                {signalement.resolutionProposeePar && (
+                  <div>
+                    <dt>Résolution proposée par</dt>
+                    <dd>{signalement.resolutionProposeePar}</dd>
+                  </div>
+                )}
+                {signalement.dateLimiteConfirmation && (
+                  <div>
+                    <dt>Confirmer avant</dt>
+                    <dd>{formaterDate(signalement.dateLimiteConfirmation)}</dd>
+                  </div>
+                )}
+                {signalement.motifReouverture && (
+                  <div>
+                    <dt>Motif de réouverture</dt>
+                    <dd>{signalement.motifReouverture}</dd>
+                  </div>
+                )}
               </dl>
+
+              <SectionResolutionAdmin
+                signalement={signalement}
+                disabled={occupe}
+                onProposer={() =>
+                  executerResolution(
+                    () => proposerResolution(id, 'ADMIN'),
+                    'Résolution proposée. En attente de confirmation citoyenne (7 jours).'
+                  )
+                }
+                onConfirmer={() =>
+                  executerResolution(
+                    () => confirmerResolution(id, 'ADMIN'),
+                    'Résolution confirmée.'
+                  )
+                }
+                onRouvrir={() =>
+                  executerResolution(
+                    () => rouvrirResolution(id, 'Toujours endommagé'),
+                    'Signalement rouvert (non résolu).'
+                  )
+                }
+              />
             </div>
           </div>
         </section>
@@ -157,6 +220,112 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
       />
     </div>
   );
+}
+
+/**
+ * Select triage uniquement. Hors triage : libellé en lecture seule
+ * (parcours résolution via les boutons ci-dessous).
+ */
+function SelectTriageStatut({ statut, disabled, onDemander }) {
+  if (!estStatutTriage(statut)) {
+    return (
+      <span className="statut-lecture">
+        {LIBELLES_STATUT[statut] || statut}
+        <span className="aide-inline"> — via le parcours résolution</span>
+      </span>
+    );
+  }
+
+  return (
+    <select
+      key={statut}
+      className="select-statut"
+      value={statut}
+      disabled={disabled}
+      aria-label="Statut du signalement (triage)"
+      onChange={(e) => onDemander(e.target.value)}
+    >
+      {STATUTS_TRIAGE_ADMIN.map((code) => (
+        <option key={code} value={code}>
+          {LIBELLES_STATUT[code] || code}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function SectionResolutionAdmin({ signalement, disabled, onProposer, onConfirmer, onRouvrir }) {
+  const statut = signalement.statut;
+  const proposePar = signalement.resolutionProposeePar;
+
+  if (STATUTS_PROPOSITION_RESOLUTION.includes(statut)) {
+    return (
+      <div className="detail-resolution">
+        <h3>Résolution</h3>
+        <p className="aide">
+          Proposez une résolution si le problème paraît corrigé. Le citoyen devra confirmer sous
+          7 jours.
+        </p>
+        <div className="detail-resolution-actions">
+          <button type="button" className="bouton" disabled={disabled} onClick={onProposer}>
+            Proposer une résolution
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (statut === 'RESOLUTION_A_CONFIRMER') {
+    const peutConfirmer = proposePar === 'CITOYEN';
+    return (
+      <div className="detail-resolution">
+        <h3>Confirmation</h3>
+        {peutConfirmer ? (
+          <>
+            <p className="aide">
+              Le citoyen a proposé une résolution. Confirmez ou signalez que le problème est
+              toujours présent.
+            </p>
+            <div className="detail-resolution-actions">
+              <button type="button" className="bouton" disabled={disabled} onClick={onConfirmer}>
+                Confirmer la résolution
+              </button>
+              <button
+                type="button"
+                className="bouton bouton-secondaire"
+                disabled={disabled}
+                onClick={onRouvrir}
+              >
+                Toujours endommagé
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="aide">
+              Proposition admin en attente de confirmation citoyenne
+              {signalement.dateLimiteConfirmation
+                ? ` (avant le ${formaterDate(signalement.dateLimiteConfirmation)})`
+                : ''}
+              .
+            </p>
+            <div className="detail-resolution-actions">
+              <button
+                type="button"
+                className="bouton bouton-secondaire"
+                disabled={disabled}
+                onClick={onRouvrir}
+              >
+                Rouvrir (toujours endommagé)
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 }
 
 function PhotoSignalement({ photoUrl }) {

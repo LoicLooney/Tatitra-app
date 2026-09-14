@@ -16,6 +16,20 @@ const STATUTS = [
 
 const STATUT_PAR_DEFAUT = 'ENVOYE';
 
+/** Rôles pour la double validation de résolution (J5). */
+const ROLES_RESOLUTION = ['CITOYEN', 'ADMIN'];
+
+/** Statuts depuis lesquels on peut proposer une résolution. */
+const STATUTS_PROPOSITION_RESOLUTION = ['PRIS_EN_CHARGE', 'REOUVERT_NON_RESOLU'];
+
+/**
+ * Statuts modifiables via PATCH libre (triage admin).
+ * Les statuts de résolution passent uniquement par /resolution (évite un bypass).
+ */
+const STATUTS_TRIAGE_ADMIN = ['ENVOYE', 'A_VERIFIER', 'PRIS_EN_CHARGE', 'REJETE'];
+
+const DELAI_CONFIRMATION_JOURS = 7;
+
 // Mêmes bornes que mg.itu.tatitra_app.domain.ReglesSignalement côté Android.
 const LONGUEUR_DESCRIPTION_MIN = 10;
 const LONGUEUR_DESCRIPTION_MAX = 500;
@@ -31,6 +45,10 @@ module.exports = {
   CATEGORIES,
   STATUTS,
   STATUT_PAR_DEFAUT,
+  ROLES_RESOLUTION,
+  STATUTS_PROPOSITION_RESOLUTION,
+  STATUTS_TRIAGE_ADMIN,
+  DELAI_CONFIRMATION_JOURS,
   LONGUEUR_DESCRIPTION_MIN,
   LONGUEUR_DESCRIPTION_MAX,
   LATITUDE_MIN,

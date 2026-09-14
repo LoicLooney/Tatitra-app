@@ -22,13 +22,16 @@ class SyncSignalementsWorker(
 
         val resultat = repository.synchroniserEnAttente()
         // Une fois les envois faits, on relit les statuts côté serveur (prise en charge, résolution).
-        repository.rafraichirStatuts()
-        preferences.enregistrerDerniereSync()
+        val rafraichi = repository.rafraichirStatuts()
+        // Pourquoi : ne pas marquer une sync réussie si réseau / serveur ont échoué.
+        if (resultat.nombreEnvoyes > 0 || rafraichi) {
+            preferences.enregistrerDerniereSync()
+        }
 
         Log.i(
             TAG,
             "Synchronisation terminée : ${resultat.nombreEnvoyes} envoyé(s), " +
-                "${resultat.nombreEchecs} échec(s)"
+                "${resultat.nombreEchecs} échec(s), rafraîchi=$rafraichi"
         )
 
         return when {

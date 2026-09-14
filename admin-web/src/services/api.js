@@ -22,6 +22,40 @@ export async function patchStatut(id, statut) {
   });
 }
 
+/** POST /api/signalements/:id/resolution — propose (J5). */
+export async function proposerResolution(id, role = 'ADMIN') {
+  return requeteApi(`/api/signalements/${id}/resolution`, {
+    method: 'POST',
+    headers: { 'X-Tatitra-Role': role },
+    body: JSON.stringify({ role }),
+  });
+}
+
+/** POST /api/signalements/:id/resolution/confirm */
+export async function confirmerResolution(id, role = 'ADMIN') {
+  return requeteApi(`/api/signalements/${id}/resolution/confirm`, {
+    method: 'POST',
+    headers: { 'X-Tatitra-Role': role },
+    body: JSON.stringify({ role }),
+  });
+}
+
+/** POST /api/signalements/:id/resolution/reopen */
+export async function rouvrirResolution(id, motif = 'Toujours endommagé') {
+  return requeteApi(`/api/signalements/${id}/resolution/reopen`, {
+    method: 'POST',
+    body: JSON.stringify({ motif }),
+  });
+}
+
+/** POST /api/signalements/jobs/expiration-resolution — job J+7 manuel */
+export async function lancerJobJ7() {
+  return requeteApi('/api/signalements/jobs/expiration-resolution', {
+    method: 'POST',
+    body: '{}',
+  });
+}
+
 /** GET /health — vérifie que le backend répond (écran Paramètres, conditions de démo). */
 export async function getHealth() {
   return requeteApi('/health');

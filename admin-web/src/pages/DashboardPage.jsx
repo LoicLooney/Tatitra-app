@@ -6,14 +6,18 @@ import FiltresSignalements, {
   filtrerSignalements,
 } from '../components/FiltresSignalements';
 import StatsPanel from '../components/StatsPanel';
-import { LIBELLES_CATEGORIE, LIBELLES_STATUT, STATUTS } from '../constants';
+import {
+  LIBELLES_CATEGORIE,
+  LIBELLES_STATUT,
+  STATUTS_TRIAGE_ADMIN,
+  estStatutTriage,
+} from '../constants';
 import { patchStatut } from '../services/api';
 import { useSignalements } from '../services/useSignalements';
 
-const STATUTS_ADMIN = STATUTS.filter((code) => code !== 'EN_ATTENTE_SYNC');
-
 /**
  * Tableau de bord : liste API + ouverture du détail (J4).
+ * Select de statut = triage uniquement ; résolution sur l'écran détail.
  */
 function DashboardPage({ signalementId, onOuvrirDetail, onFermerDetail }) {
   const { signalements, chargement, erreur, recharger } = useSignalements();
@@ -34,9 +38,11 @@ function DashboardPage({ signalementId, onOuvrirDetail, onFermerDetail }) {
   }
 
   const signalementsFiltres = filtrerSignalements(signalements, statut, categorie);
+  const modalOuverte = Boolean(confirmation);
 
   function demanderChangementStatut(id, ancienStatut, nouveauStatut) {
     if (nouveauStatut === ancienStatut) return;
+    if (!estStatutTriage(nouveauStatut)) return;
     setConfirmation({ id, ancienStatut, nouveauStatut });
   }
 
@@ -91,13 +97,14 @@ function DashboardPage({ signalementId, onOuvrirDetail, onFermerDetail }) {
         <ApercuSignalements
           signalements={signalementsFiltres}
           chargement={chargement}
+          selectsDesactives={modalOuverte || confirmationEnCours}
           onDemanderChangementStatut={demanderChangementStatut}
           onOuvrirDetail={onOuvrirDetail}
         />
       </section>
 
       <ConfirmStatutModal
-        ouvert={Boolean(confirmation)}
+        ouvert={modalOuverte}
         ancienStatut={confirmation?.ancienStatut}
         nouveauStatut={confirmation?.nouveauStatut}
         enCours={confirmationEnCours}
@@ -111,6 +118,7 @@ function DashboardPage({ signalementId, onOuvrirDetail, onFermerDetail }) {
 function ApercuSignalements({
   signalements,
   chargement,
+  selectsDesactives,
   onDemanderChangementStatut,
   onOuvrirDetail,
 }) {
@@ -139,25 +147,11 @@ function ApercuSignalements({
               {signalement.isDemo && <span className="etiquette-demo">démonstration</span>}
             </td>
             <td>
-              <select
-                className="select-statut"
-                value={signalement.statut}
-                aria-label={`Statut de ${signalement.id}`}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) =>
-                  onDemanderChangementStatut(
-                    signalement.id,
-                    signalement.statut,
-                    e.target.value
-                  )
-                }
-              >
-                {STATUTS_ADMIN.map((code) => (
-                  <option key={code} value={code}>
-                    {LIBELLES_STATUT[code] || code}
-                  </option>
-                ))}
-              </select>
+              <CelluleStatutListe
+                signalement={signalement}
+                disabled={selectsDesactives}
+                onDemander={onDemanderChangementStatut}
+              />
             </td>
             <td>{formaterDate(signalement.createdAt)}</td>
             <td>
@@ -173,6 +167,39 @@ function ApercuSignalements({
         ))}
       </tbody>
     </table>
+  );
+}
+
+/**
+ * Triage via select ; hors triage → libellé + lien vers le détail (résolution).
+ */
+function CelluleStatutListe({ signalement, disabled, onDemander }) {
+  if (!estStatutTriage(signalement.statut)) {
+    return (
+      <span className="statut-lecture" title="Gérer la résolution depuis le détail">
+        {LIBELLES_STATUT[signalement.statut] || signalement.statut}
+      </span>
+    );
+  }
+
+  return (
+    <select
+      key={`${signalement.id}-${signalement.statut}`}
+      className="select-statut"
+      value={signalement.statut}
+      disabled={disabled}
+      aria-label={`Statut de ${signalement.id}`}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) =>
+        onDemander(signalement.id, signalement.statut, e.target.value)
+      }
+    >
+      {STATUTS_TRIAGE_ADMIN.map((code) => (
+        <option key={code} value={code}>
+          {LIBELLES_STATUT[code] || code}
+        </option>
+      ))}
+    </select>
   );
 }
 

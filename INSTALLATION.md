@@ -225,9 +225,12 @@ Tatitra-app/
 | `GET` | `/api/signalements` | disponible |
 | `POST` | `/api/signalements` | disponible — validation + idempotence par `clientId` |
 | `POST` | `/api/uploads` | disponible — champ `photo`, Supabase Storage ou disque local |
-| `GET` | `/api/signalements/:id` | à venir |
-| `PATCH` | `/api/signalements/:id/statut` | à venir |
-| `POST` | `/api/signalements/:id/resolution[/confirm\|/reopen]` | à venir |
+| `GET` | `/api/signalements/:id` | disponible |
+| `PATCH` | `/api/signalements/:id/statut` | disponible |
+| `POST` | `/api/signalements/:id/resolution` | disponible — propose (rôle CITOYEN/ADMIN) |
+| `POST` | `/api/signalements/:id/resolution/confirm` | disponible |
+| `POST` | `/api/signalements/:id/resolution/reopen` | disponible — « toujours endommagé » |
+| `POST` | `/api/signalements/jobs/expiration-resolution` | disponible — job J+7 manuel |
 | `GET` | `/api/notifications` | à venir |
 
 ---

@@ -362,6 +362,31 @@
   word-break: break-all;
 }
 
+.statut-lecture {
+  font-size: 13px;
+}
+
+.aide-inline {
+  font-size: 12px;
+  color: var(--texte);
+  opacity: 0.75;
+}
+
+.detail-resolution {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bordure);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-resolution-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .modal-fond {
   position: fixed;
   inset: 0;

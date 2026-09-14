@@ -11,6 +11,22 @@ export const STATUTS = [
   'REOUVERT_NON_RESOLU',
 ];
 
+/**
+ * Statuts modifiables via PATCH (triage). Les statuts de résolution
+ * passent uniquement par POST /resolution (aligné backend STATUTS_TRIAGE_ADMIN).
+ */
+export const STATUTS_TRIAGE_ADMIN = [
+  'ENVOYE',
+  'A_VERIFIER',
+  'PRIS_EN_CHARGE',
+  'REJETE',
+];
+
+export const STATUTS_PROPOSITION_RESOLUTION = [
+  'PRIS_EN_CHARGE',
+  'REOUVERT_NON_RESOLU',
+];
+
 export const CATEGORIES = ['ROUTE', 'DECHETS', 'ECLAIRAGE', 'DRAINAGE', 'PONT'];
 
 export const LIBELLES_STATUT = {
@@ -31,3 +47,8 @@ export const LIBELLES_CATEGORIE = {
   DRAINAGE: 'Drainage',
   PONT: 'Pont / ouvrage',
 };
+
+/** Indique si le statut peut être changé via le select de triage. */
+export function estStatutTriage(statut) {
+  return STATUTS_TRIAGE_ADMIN.includes(statut);
+}
