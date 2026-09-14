@@ -1,17 +1,13 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
+build/
+.gradle/
+.kotlin/
 /captures
 .externalNativeBuild
 .cxx
+*.apk
+*.aab
+
+# Configuration propre à chaque poste (chemin du SDK Android)
 local.properties
 
 # Secrets / env (jamais versionner)
@@ -28,3 +24,15 @@ backend/.env
 backend/data/*.sqlite
 backend/node_modules/
 admin-web/node_modules/
+# --- Node (backend et admin-web) ---
+node_modules/
+.env
+.env.local
+*.log
+
+# --- IDE ---
+*.iml
+.idea/
+.vscode/
+.DS_Store
+.claude/

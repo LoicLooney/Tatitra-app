@@ -1,7 +1,7 @@
 {
-  "name": "lalana-backend",
+  "name": "tatitra-backend",
   "version": "1.0.0",
-  "description": "API REST LALANA / Tatitra",
+  "description": "API REST TATITRA",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -13,10 +13,12 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "pg": "^8.23.0"
+    "multer": "^2.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
