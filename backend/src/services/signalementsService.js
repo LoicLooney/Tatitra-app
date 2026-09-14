@@ -17,8 +17,16 @@ function versApi(row) {
     isDemo: row.is_demo,
     createdAt: row.date_creation,
     updatedAt: row.date_modification,
+    resolutionProposeePar: row.resolution_proposee_par || null,
+    resolutionProposeeLe: row.resolution_proposee_le || null,
+    dateLimiteConfirmation: row.date_limite_confirmation || null,
+    resolutionConfirmeeLe: row.resolution_confirmee_le || null,
+    dateReouverture: row.date_reouverture || null,
+    motifReouverture: row.motif_reouverture || null,
   };
 }
+
+exports.versApi = versApi;
 
 const SELECT_COMPLET = `
   SELECT

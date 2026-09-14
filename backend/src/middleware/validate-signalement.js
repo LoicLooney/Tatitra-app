@@ -1,6 +1,7 @@
 const {
   CATEGORIES,
   STATUTS,
+  STATUTS_TRIAGE_ADMIN,
   LONGUEUR_DESCRIPTION_MIN,
   LONGUEUR_DESCRIPTION_MAX,
   LATITUDE_MIN,
@@ -82,8 +83,8 @@ function validerCreationSignalement(req, res, next) {
 }
 
 /**
- * Valide le corps d'un PATCH /api/signalements/:id/statut (J3).
- * Corps attendu : { "statut": "PRIS_EN_CHARGE" }
+ * Valide le corps d'un PATCH /api/signalements/:id/statut (triage uniquement).
+ * Les statuts de résolution (proposer / confirmer / rouvrir) passent par /resolution.
  */
 function validerChangementStatut(req, res, next) {
   const erreurs = [];
@@ -94,6 +95,12 @@ function validerChangementStatut(req, res, next) {
     erreurs.push('statut manquant');
   } else if (!STATUTS_API.includes(statut)) {
     erreurs.push(`statut inconnu (valeurs acceptées : ${STATUTS_API.join(', ')})`);
+  } else if (!STATUTS_TRIAGE_ADMIN.includes(statut)) {
+    // Pourquoi : un PATCH libre vers RESOLUTION_* contourne la double validation J5.
+    erreurs.push(
+      `statut réservé au parcours résolution — utilisez POST /resolution ` +
+        `(triage accepté : ${STATUTS_TRIAGE_ADMIN.join(', ')})`
+    );
   }
 
   if (erreurs.length > 0) {

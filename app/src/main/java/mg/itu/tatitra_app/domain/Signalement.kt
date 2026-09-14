@@ -5,6 +5,7 @@ package mg.itu.tatitra_app.domain
  *
  * Les champs optionnels (position, photo, identifiant serveur) sont nullables et
  * traités explicitement : un signalement reste valide sans photo ni GPS.
+ * Les champs de résolution (J5) restent en local pour l'offline-first.
  */
 data class Signalement(
     val idLocal: String,
@@ -19,7 +20,10 @@ data class Signalement(
     val serverId: String?,
     val dateCreation: Long,
     val isDemo: Boolean,
-    val derniereErreurSync: String?
+    val derniereErreurSync: String?,
+    val resolutionProposeePar: String? = null,
+    val dateLimiteConfirmation: String? = null,
+    val motifReouverture: String? = null
 ) {
     val aUnePosition: Boolean get() = latitude != null && longitude != null
 

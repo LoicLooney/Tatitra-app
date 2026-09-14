@@ -71,8 +71,11 @@ class AccueilViewModel(
             etatSynchronisation.update { it.copy(enCours = true, message = null) }
 
             val resultat = repository.synchroniserEnAttente()
-            repository.rafraichirStatuts()
-            preferencesRepository.enregistrerDerniereSync()
+            val rafraichi = repository.rafraichirStatuts()
+            // Pourquoi : ne pas afficher une « dernière sync » si rien n'a réellement abouti.
+            if (resultat.nombreEnvoyes > 0 || rafraichi) {
+                preferencesRepository.enregistrerDerniereSync()
+            }
 
             val message = when {
                 resultat.nombreEchecs > 0 -> resultat.message ?: "Synchronisation incomplète."
