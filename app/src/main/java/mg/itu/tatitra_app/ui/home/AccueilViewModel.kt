@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import mg.itu.tatitra_app.TatitraApplication
+import mg.itu.tatitra_app.data.local.PreferencesDataStore
+import mg.itu.tatitra_app.data.repository.PreferencesRepository
 import mg.itu.tatitra_app.data.repository.SignalementRepository
 import mg.itu.tatitra_app.domain.Signalement
 import mg.itu.tatitra_app.domain.StatutSignalement
@@ -27,7 +29,10 @@ data class AccueilUiState(
     val nombreAConfirmer: Int = 0,
     val nombreResolus: Int = 0,
     val synchronisationEnCours: Boolean = false,
-    val messageSynchronisation: String? = null
+    val messageSynchronisation: String? = null,
+    /** Préférences DataStore (J4), relues au démarrage. */
+    val langue: String = PreferencesDataStore.LANGUE_PAR_DEFAUT,
+    val derniereSyncMs: Long? = null
 ) {
     val aDesSignalements: Boolean get() = signalementsRecents.isNotEmpty()
 }
@@ -35,14 +40,20 @@ data class AccueilUiState(
 /** Détenteur de l'état de l'écran Accueil : l'UI observe, les événements remontent ici (S6). */
 class AccueilViewModel(
     private val application: Application,
-    private val repository: SignalementRepository
+    private val repository: SignalementRepository,
+    private val preferencesRepository: PreferencesRepository
 ) : ViewModel() {
 
     private val etatSynchronisation = MutableStateFlow(EtatSynchronisation())
 
     val uiState: StateFlow<AccueilUiState> =
-        combine(repository.observerSignalements(), etatSynchronisation) { signalements, sync ->
-            construireEtat(signalements, sync)
+        combine(
+            repository.observerSignalements(),
+            etatSynchronisation,
+            preferencesRepository.observerLangue(),
+            preferencesRepository.observerDerniereSyncMs()
+        ) { signalements, sync, langue, derniereSyncMs ->
+            construireEtat(signalements, sync, langue, derniereSyncMs)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(DUREE_ABONNEMENT_MS),
@@ -61,6 +72,7 @@ class AccueilViewModel(
 
             val resultat = repository.synchroniserEnAttente()
             repository.rafraichirStatuts()
+            preferencesRepository.enregistrerDerniereSync()
 
             val message = when {
                 resultat.nombreEchecs > 0 -> resultat.message ?: "Synchronisation incomplète."
@@ -69,21 +81,28 @@ class AccueilViewModel(
             }
             etatSynchronisation.update { EtatSynchronisation(enCours = false, message = message) }
 
-            // Les envois encore en échec seront repris par le worker dès que le réseau reviendra.
             if (resultat.doitReessayer) {
                 SyncScheduler.demanderSynchronisation(application)
             }
         }
     }
 
-    /** Le message a été affiché : on l'efface pour ne pas le rejouer à la recomposition suivante. */
+    /** Change la langue et la persiste dans DataStore (relue au prochain démarrage). */
+    fun changerLangue(code: String) {
+        viewModelScope.launch {
+            preferencesRepository.definirLangue(code)
+        }
+    }
+
     fun messageAffiche() {
         etatSynchronisation.update { it.copy(message = null) }
     }
 
     private fun construireEtat(
         signalements: List<Signalement>,
-        sync: EtatSynchronisation
+        sync: EtatSynchronisation,
+        langue: String,
+        derniereSyncMs: Long?
     ): AccueilUiState = AccueilUiState(
         signalementsRecents = signalements.take(NOMBRE_SIGNALEMENTS_RECENTS),
         nombreEnAttente = signalements.count { !it.synchronise },
@@ -95,7 +114,9 @@ class AccueilViewModel(
         },
         nombreResolus = signalements.count { it.statut == StatutSignalement.RESOLU_CONFIRME },
         synchronisationEnCours = sync.enCours,
-        messageSynchronisation = sync.message
+        messageSynchronisation = sync.message,
+        langue = langue,
+        derniereSyncMs = derniereSyncMs
     )
 
     private data class EtatSynchronisation(
@@ -118,7 +139,11 @@ class AccueilViewModel(
             initializer {
                 val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
                     as TatitraApplication
-                AccueilViewModel(application, application.container.signalementRepository)
+                AccueilViewModel(
+                    application = application,
+                    repository = application.container.signalementRepository,
+                    preferencesRepository = application.container.preferencesRepository
+                )
             }
         }
     }

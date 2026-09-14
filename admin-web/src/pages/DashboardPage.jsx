@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import ConfirmStatutModal from '../components/ConfirmStatutModal';
+import DetailSignalement from '../components/DetailSignalement';
 import FiltresSignalements, {
   FILTRE_TOUS,
   filtrerSignalements,
@@ -8,29 +10,49 @@ import { LIBELLES_CATEGORIE, LIBELLES_STATUT, STATUTS } from '../constants';
 import { patchStatut } from '../services/api';
 import { useSignalements } from '../services/useSignalements';
 
-/** Statuts modifiables depuis l'admin (pas EN_ATTENTE_SYNC, réservé au mobile). */
 const STATUTS_ADMIN = STATUTS.filter((code) => code !== 'EN_ATTENTE_SYNC');
 
 /**
- * Tableau de bord : synthèse, filtres et liste connectée à l'API (J3).
- * Le statut est modifiable via PATCH /api/signalements/:id/statut.
+ * Tableau de bord : liste API + ouverture du détail (J4).
  */
-function DashboardPage() {
+function DashboardPage({ signalementId, onOuvrirDetail, onFermerDetail }) {
   const { signalements, chargement, erreur, recharger } = useSignalements();
   const [statut, setStatut] = useState(FILTRE_TOUS);
   const [categorie, setCategorie] = useState(FILTRE_TOUS);
   const [messageAction, setMessageAction] = useState(null);
+  const [confirmation, setConfirmation] = useState(null);
+  const [confirmationEnCours, setConfirmationEnCours] = useState(false);
+
+  if (signalementId) {
+    return (
+      <DetailSignalement
+        id={signalementId}
+        onRetour={onFermerDetail}
+        onStatutChange={recharger}
+      />
+    );
+  }
 
   const signalementsFiltres = filtrerSignalements(signalements, statut, categorie);
 
-  async function onChangerStatut(id, nouveauStatut) {
+  function demanderChangementStatut(id, ancienStatut, nouveauStatut) {
+    if (nouveauStatut === ancienStatut) return;
+    setConfirmation({ id, ancienStatut, nouveauStatut });
+  }
+
+  async function confirmerChangementStatut() {
+    if (!confirmation) return;
     setMessageAction(null);
+    setConfirmationEnCours(true);
     try {
-      await patchStatut(id, nouveauStatut);
-      setMessageAction(`Statut mis à jour pour ${id}.`);
+      await patchStatut(confirmation.id, confirmation.nouveauStatut);
+      setMessageAction(`Statut mis à jour pour ${confirmation.id}.`);
+      setConfirmation(null);
       await recharger();
     } catch (echec) {
       setMessageAction(echec.message);
+    } finally {
+      setConfirmationEnCours(false);
     }
   }
 
@@ -69,14 +91,29 @@ function DashboardPage() {
         <ApercuSignalements
           signalements={signalementsFiltres}
           chargement={chargement}
-          onChangerStatut={onChangerStatut}
+          onDemanderChangementStatut={demanderChangementStatut}
+          onOuvrirDetail={onOuvrirDetail}
         />
       </section>
+
+      <ConfirmStatutModal
+        ouvert={Boolean(confirmation)}
+        ancienStatut={confirmation?.ancienStatut}
+        nouveauStatut={confirmation?.nouveauStatut}
+        enCours={confirmationEnCours}
+        onConfirmer={confirmerChangementStatut}
+        onAnnuler={() => !confirmationEnCours && setConfirmation(null)}
+      />
     </div>
   );
 }
 
-function ApercuSignalements({ signalements, chargement, onChangerStatut }) {
+function ApercuSignalements({
+  signalements,
+  chargement,
+  onDemanderChangementStatut,
+  onOuvrirDetail,
+}) {
   if (chargement) return <p>Chargement des signalements…</p>;
   if (signalements.length === 0) return <p>Aucun signalement pour ces filtres.</p>;
 
@@ -89,6 +126,7 @@ function ApercuSignalements({ signalements, chargement, onChangerStatut }) {
           <th>Description</th>
           <th>Statut</th>
           <th>Reçu le</th>
+          <th>Détail</th>
         </tr>
       </thead>
       <tbody>
@@ -105,7 +143,14 @@ function ApercuSignalements({ signalements, chargement, onChangerStatut }) {
                 className="select-statut"
                 value={signalement.statut}
                 aria-label={`Statut de ${signalement.id}`}
-                onChange={(e) => onChangerStatut(signalement.id, e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) =>
+                  onDemanderChangementStatut(
+                    signalement.id,
+                    signalement.statut,
+                    e.target.value
+                  )
+                }
               >
                 {STATUTS_ADMIN.map((code) => (
                   <option key={code} value={code}>
@@ -115,6 +160,15 @@ function ApercuSignalements({ signalements, chargement, onChangerStatut }) {
               </select>
             </td>
             <td>{formaterDate(signalement.createdAt)}</td>
+            <td>
+              <button
+                type="button"
+                className="bouton bouton-secondaire bouton-compact"
+                onClick={() => onOuvrirDetail(signalement.id)}
+              >
+                Voir
+              </button>
+            </td>
           </tr>
         ))}
       </tbody>
