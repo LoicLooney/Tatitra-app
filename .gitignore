@@ -10,6 +10,20 @@ build/
 # Configuration propre à chaque poste (chemin du SDK Android)
 local.properties
 
+# Secrets / env (jamais versionner)
+.env
+.env.*
+!.env.example
+**/env
+backend/env
+backend/.env
+**/credentials*
+**/secrets*
+
+# Données locales
+backend/data/*.sqlite
+backend/node_modules/
+admin-web/node_modules/
 # --- Node (backend et admin-web) ---
 node_modules/
 .env
