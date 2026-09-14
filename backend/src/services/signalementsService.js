@@ -1,65 +1,61 @@
 const db = require('../db');
-
-exports.lister = async () => {
-  const result = await db.query(
-    `SELECT
-       id,
-       client_id,
-       categorie,
-       description,
-       latitude,
-       longitude,
-       photo_url,
-       statut,
-       resolution_proposee_par,
-       resolution_proposee_le,
-       date_limite_confirmation,
-       resolution_confirmee_le,
-       date_reouverture,
-       motif_reouverture,
-       is_demo,
-       date_creation,
-       date_modification
-     FROM signalements
-     ORDER BY date_creation DESC`
-  );
-  return result.rows;
-};
-const crypto = require('crypto');
 const { STATUT_PAR_DEFAUT } = require('../constants');
+const { ErreurApi } = require('../middleware/errorHandler');
 
-// Mémoire temporaire — remplacé plus tard par PostgreSQL / Supabase (src/db).
-const signalements = [];
+/** Convertit une ligne PostgreSQL (snake_case) vers le contrat API (camelCase). */
+function versApi(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    categorie: row.categorie,
+    description: row.description,
+    latitude: row.latitude !== null ? Number(row.latitude) : null,
+    longitude: row.longitude !== null ? Number(row.longitude) : null,
+    photoUrl: row.photo_url,
+    statut: row.statut,
+    isDemo: row.is_demo,
+    createdAt: row.date_creation,
+    updatedAt: row.date_modification,
+  };
+}
 
-// Index clientId -> signalement : support de l'idempotence, remplacé côté base
-// par la contrainte UNIQUE sur signalements.client_id.
-const parClientId = new Map();
+const SELECT_COMPLET = `
+  SELECT
+    id, client_id, categorie, description, latitude, longitude, photo_url, statut,
+    resolution_proposee_par, resolution_proposee_le, date_limite_confirmation,
+    resolution_confirmee_le, date_reouverture, motif_reouverture,
+    is_demo, date_creation, date_modification
+  FROM signalements
+`;
 
-exports.lister = async () => signalements;
+// GET /api/signalements — liste (admin / rafraîchissement).
+exports.lister = async () => {
+  const result = await db.query(`${SELECT_COMPLET} ORDER BY date_creation DESC`);
+  return result.rows.map(versApi);
+};
 
-exports.recupererParClientId = async (clientId) => parClientId.get(clientId) || null;
+// GET /api/signalements/:id — détail d'un signalement.
+exports.recupererParId = async (id) => {
+  const result = await db.query(`${SELECT_COMPLET} WHERE id = $1`, [id]);
+  const signalement = versApi(result.rows[0]);
+  if (!signalement) {
+    throw new ErreurApi(404, `Signalement introuvable : ${id}`);
+  }
+  return signalement;
+};
 
 /**
  * Crée un signalement à partir d'un corps déjà validé.
- *
- * Idempotence : une synchronisation rejouée (perte de réseau après l'envoi, reprise
- * du WorkManager) renvoie le signalement existant au lieu d'en créer un doublon.
- * `cree` indique au contrôleur s'il doit répondre 201 ou 200.
+ * Idempotence sur client_id : un rejeu renvoie l'existant (cree: false).
  */
 exports.creer = async (payload) => {
-  const {
-    client_id,
-    categorie,
-    description,
-    latitude = null,
-    longitude = null,
-    photo_url = null,
-    statut = 'ENVOYE',
-    is_demo = false,
-  } = payload;
-
-  if (!client_id || !categorie || !description) {
-    throw new Error('client_id, categorie et description sont obligatoires');
+  const existant = await db.query(
+    'SELECT * FROM signalements WHERE client_id = $1',
+    [payload.clientId]
+  );
+  if (existant.rows[0]) {
+    return { signalement: versApi(existant.rows[0]), cree: false };
   }
 
   const result = await db.query(
@@ -67,36 +63,17 @@ exports.creer = async (payload) => {
        (client_id, categorie, description, latitude, longitude, photo_url, statut, is_demo)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
-    [client_id, categorie, description, latitude, longitude, photo_url, statut, is_demo]
+    [
+      payload.clientId,
+      payload.categorie,
+      payload.description,
+      payload.latitude,
+      payload.longitude,
+      payload.photoUrl,
+      STATUT_PAR_DEFAUT,
+      payload.isDemo === true,
+    ]
   );
-  return result.rows[0];
-  const existant = parClientId.get(payload.clientId);
-  if (existant) {
-    return { signalement: existant, cree: false };
-  }
 
-  const signalement = {
-    id: genererIdentifiant(),
-    clientId: payload.clientId,
-    categorie: payload.categorie,
-    description: payload.description,
-    latitude: payload.latitude,
-    longitude: payload.longitude,
-    photoUrl: payload.photoUrl,
-    statut: STATUT_PAR_DEFAUT,
-    isDemo: payload.isDemo,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  signalements.push(signalement);
-  parClientId.set(signalement.clientId, signalement);
-  return { signalement, cree: true };
+  return { signalement: versApi(result.rows[0]), cree: true };
 };
-
-/** Identifiant lisible, du même format que celui prévu côté base (SIG-000125). */
-function genererIdentifiant() {
-  const numero = String(signalements.length + 1).padStart(6, '0');
-  const suffixe = crypto.randomBytes(2).toString('hex');
-  return `SIG-${numero}-${suffixe}`;
-}

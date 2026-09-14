@@ -1,0 +1,14 @@
+#!/bin/sh
+# Retire les trailers d'attribution Cursor ajoutés automatiquement.
+# Usage local : copier vers .git/hooks/ ou : git config core.hooksPath .githooks
+
+msgfile="$1"
+tmpfile="${msgfile}.tmp.$$"
+
+grep -v -E \
+  -e '^Co-authored-by:[[:space:]]*Cursor[[:space:]]*<cursoragent@cursor\.com>$' \
+  -e '^Made-with:[[:space:]]*Cursor$' \
+  -e '^Made with Cursor$' \
+  "$msgfile" > "$tmpfile" && mv "$tmpfile" "$msgfile"
+
+exit 0
