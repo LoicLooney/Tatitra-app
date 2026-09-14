@@ -1,2 +1,3 @@
-// Pages admin : ListeSignalements, DetailSignalement, etc.
-export {};
+// Pages de l'administration.
+export { default as DashboardPage } from './DashboardPage';
+export { default as ParametresPage } from './ParametresPage';
