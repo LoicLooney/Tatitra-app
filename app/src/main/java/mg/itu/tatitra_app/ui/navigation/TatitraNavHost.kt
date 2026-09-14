@@ -9,14 +9,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import mg.itu.tatitra_app.ui.home.EcranAccueilRoute
 import mg.itu.tatitra_app.ui.report.NouveauSignalementRoute
-import mg.itu.tatitra_app.ui.reports.EcranDetailSignalementFictif
+import mg.itu.tatitra_app.ui.reports.EcranDetailSignalementRoute
 import mg.itu.tatitra_app.ui.reports.EcranMesSignalementsRoute
 
 /**
  * Graphe de navigation de l'application (S5).
  *
- * « Mes signalements » (J2 Membre B) : liste fictive + détail fictif.
- * Le détail API serveur est testable via GET /api/signalements/:id.
+ * « Mes signalements » / détail (J3) : données Room réelles (photo, statut, GPS).
  */
 @Composable
 fun TatitraNavHost(
@@ -68,7 +67,7 @@ fun TatitraNavHost(
             )
         ) { entree ->
             val idLocal = entree.arguments?.getString(DestinationsTatitra.ARGUMENT_ID_LOCAL).orEmpty()
-            EcranDetailSignalementFictif(
+            EcranDetailSignalementRoute(
                 idLocal = idLocal,
                 onRetour = { navController.popBackStack() }
             )

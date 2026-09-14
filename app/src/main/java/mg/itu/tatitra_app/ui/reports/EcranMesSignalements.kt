@@ -35,7 +35,7 @@ fun EcranMesSignalementsRoute(
     onRetour: () -> Unit,
     onOuvrirSignalement: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: MesSignalementsViewModel = viewModel()
+    viewModel: MesSignalementsViewModel = viewModel(factory = MesSignalementsViewModel.Factory)
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -71,6 +71,23 @@ fun EcranMesSignalements(
             )
         }
     ) { padding ->
+        if (uiState.signalements.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Aucun signalement pour le moment. Créez-en un depuis l'accueil.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            return@Scaffold
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -78,16 +95,6 @@ fun EcranMesSignalements(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (uiState.estFictif) {
-                item {
-                    Text(
-                        text = "Données de démonstration (fictives) — J2",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
             items(
                 items = uiState.signalements,
                 key = { it.idLocal }
@@ -107,7 +114,7 @@ private fun CarteSignalement(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Même structure que CarteSignalementResume (Accueil) — cours / projet
+    // Même structure que CarteSignalementResume (Accueil)
     Card(
         modifier = modifier
             .fillMaxWidth()

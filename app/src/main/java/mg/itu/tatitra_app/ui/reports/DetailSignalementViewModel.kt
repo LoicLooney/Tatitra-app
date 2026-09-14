@@ -14,29 +14,29 @@ import mg.itu.tatitra_app.TatitraApplication
 import mg.itu.tatitra_app.data.repository.SignalementRepository
 import mg.itu.tatitra_app.domain.Signalement
 
-data class MesSignalementsUiState(
-    val signalements: List<Signalement> = emptyList()
+data class DetailSignalementUiState(
+    val signalement: Signalement? = null,
+    val charge: Boolean = true
 )
 
 /**
- * ViewModel de « Mes signalements » (J3) : observe Room via le repository (S6).
- * Les données fictives J2 ne sont plus utilisées ici.
+ * Détail d'un signalement (J3) : photo, statut, GPS depuis Room (données réelles).
  */
-class MesSignalementsViewModel(
+class DetailSignalementViewModel(
+    idLocal: String,
     private val repository: SignalementRepository
 ) : ViewModel() {
 
-    val uiState: StateFlow<MesSignalementsUiState> =
-        repository.observerSignalements()
-            .map { MesSignalementsUiState(signalements = it) }
+    val uiState: StateFlow<DetailSignalementUiState> =
+        repository.observerSignalement(idLocal)
+            .map { DetailSignalementUiState(signalement = it, charge = false) }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(DUREE_ABONNEMENT_MS),
-                initialValue = MesSignalementsUiState()
+                initialValue = DetailSignalementUiState()
             )
 
     init {
-        // Aligne les statuts locaux avec le serveur quand l'écran s'ouvre.
         viewModelScope.launch {
             repository.rafraichirStatuts()
         }
@@ -45,11 +45,14 @@ class MesSignalementsViewModel(
     companion object {
         private const val DUREE_ABONNEMENT_MS = 5_000L
 
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
+        fun factory(idLocal: String): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
                     as TatitraApplication
-                MesSignalementsViewModel(application.container.signalementRepository)
+                DetailSignalementViewModel(
+                    idLocal = idLocal,
+                    repository = application.container.signalementRepository
+                )
             }
         }
     }

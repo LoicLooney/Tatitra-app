@@ -77,3 +77,22 @@ exports.creer = async (payload) => {
 
   return { signalement: versApi(result.rows[0]), cree: true };
 };
+
+/**
+ * Met à jour le statut d'un signalement (admin / PATCH).
+ * Le statut a déjà été validé par le middleware.
+ */
+exports.mettreAJourStatut = async (id, statut) => {
+  const result = await db.query(
+    `UPDATE signalements
+        SET statut = $1, date_modification = NOW()
+      WHERE id = $2
+      RETURNING *`,
+    [statut, id]
+  );
+  const signalement = versApi(result.rows[0]);
+  if (!signalement) {
+    throw new ErreurApi(404, `Signalement introuvable : ${id}`);
+  }
+  return signalement;
+};
