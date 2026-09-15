@@ -15,10 +15,6 @@ import {
 import { patchStatut } from '../services/api';
 import { useSignalements } from '../services/useSignalements';
 
-/**
- * Tableau de bord : liste API + ouverture du détail (J4).
- * Select de statut = triage uniquement ; résolution sur l'écran détail.
- */
 function DashboardPage({ signalementId, onOuvrirDetail, onFermerDetail }) {
   const { signalements, chargement, erreur, recharger } = useSignalements();
   const [statut, setStatut] = useState(FILTRE_TOUS);
@@ -79,7 +75,10 @@ function DashboardPage({ signalementId, onOuvrirDetail, onFermerDetail }) {
 
       {messageAction && <p className="message-info">{messageAction}</p>}
 
-      <StatsPanel signalements={signalements} />
+      <StatsPanel
+        signalements={signalements}
+        onFiltrerStatut={(code) => setStatut(code || FILTRE_TOUS)}
+      />
 
       <section className="carte">
         <h2>Signalements</h2>
@@ -139,12 +138,23 @@ function ApercuSignalements({
       </thead>
       <tbody>
         {signalements.map((signalement) => (
-          <tr key={signalement.id}>
+          <tr key={signalement.id} className={classeLigne(signalement.statut)}>
             <td className="cellule-reference">{signalement.id}</td>
             <td>{LIBELLES_CATEGORIE[signalement.categorie] || signalement.categorie}</td>
             <td className="cellule-description">
               {signalement.description}
               {signalement.isDemo && <span className="etiquette-demo">démonstration</span>}
+              {signalement.statut === 'RESOLUTION_A_CONFIRMER' && (
+                <span className="etiquette-alerte" title="Action de résolution requise">
+                  À confirmer
+                </span>
+              )}
+              {signalement.statut === 'REOUVERT_NON_RESOLU' && (
+                <span className="etiquette-rouvert" title="Signalement rouvert">
+                  Rouvert
+                  {signalement.motifReouverture ? ` — ${signalement.motifReouverture}` : ''}
+                </span>
+              )}
             </td>
             <td>
               <CelluleStatutListe
@@ -170,9 +180,12 @@ function ApercuSignalements({
   );
 }
 
-/**
- * Triage via select ; hors triage → libellé + lien vers le détail (résolution).
- */
+function classeLigne(statut) {
+  if (statut === 'REOUVERT_NON_RESOLU') return 'ligne-rouvert';
+  if (statut === 'RESOLUTION_A_CONFIRMER') return 'ligne-a-confirmer';
+  return undefined;
+}
+
 function CelluleStatutListe({ signalement, disabled, onDemander }) {
   if (!estStatutTriage(signalement.statut)) {
     return (

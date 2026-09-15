@@ -47,16 +47,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import mg.itu.tatitra_app.R
-import mg.itu.tatitra_app.data.local.PreferencesDataStore
 import mg.itu.tatitra_app.domain.Signalement
 import mg.itu.tatitra_app.ui.components.StatutBadge
 import mg.itu.tatitra_app.ui.theme.TatitraappTheme
 import mg.itu.tatitra_app.util.formaterDateHeure
 
-/**
- * Point d'entrée navigable : relie le ViewModel à l'écran.
- * L'écran lui-même reste sans logique métier (§2.2 des règles de code).
- */
 @Composable
 fun EcranAccueilRoute(
     onNouveauSignalement: () -> Unit,
@@ -73,7 +68,6 @@ fun EcranAccueilRoute(
         onVoirMesSignalements = onVoirMesSignalements,
         onOuvrirSignalement = onOuvrirSignalement,
         onSynchroniser = viewModel::synchroniserMaintenant,
-        onChangerLangue = viewModel::changerLangue,
         onMessageAffiche = viewModel::messageAffiche,
         modifier = modifier
     )
@@ -86,7 +80,6 @@ fun EcranAccueil(
     onVoirMesSignalements: () -> Unit,
     onOuvrirSignalement: (String) -> Unit,
     onSynchroniser: () -> Unit,
-    onChangerLangue: (String) -> Unit,
     onMessageAffiche: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -129,9 +122,7 @@ fun EcranAccueil(
             )
 
             CartePreferences(
-                langue = uiState.langue,
-                derniereSyncMs = uiState.derniereSyncMs,
-                onChangerLangue = onChangerLangue
+                derniereSyncMs = uiState.derniereSyncMs
             )
 
             SectionSignalementsRecents(
@@ -159,12 +150,9 @@ private fun EnteteTatitra(modifier: Modifier = Modifier) {
     }
 }
 
-/** Préférences DataStore (J4) : langue + dernière sync, relues au démarrage. */
 @Composable
 private fun CartePreferences(
-    langue: String,
     derniereSyncMs: Long?,
-    onChangerLangue: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -183,30 +171,10 @@ private fun CartePreferences(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = "Langue",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { onChangerLangue(PreferencesDataStore.LANGUE_FR) },
-                    enabled = langue != PreferencesDataStore.LANGUE_FR
-                ) {
-                    Text(if (langue == PreferencesDataStore.LANGUE_FR) "Français ✓" else "Français")
-                }
-                OutlinedButton(
-                    onClick = { onChangerLangue(PreferencesDataStore.LANGUE_MG) },
-                    enabled = langue != PreferencesDataStore.LANGUE_MG
-                ) {
-                    Text(if (langue == PreferencesDataStore.LANGUE_MG) "Malagasy ✓" else "Malagasy")
-                }
-            }
         }
     }
 }
 
-/** Compteurs « Mes signalements » et action de synchronisation manuelle. */
 @Composable
 private fun CarteSynthese(
     uiState: AccueilUiState,
@@ -385,7 +353,6 @@ private fun ApercuEcranAccueil() {
             onVoirMesSignalements = {},
             onOuvrirSignalement = {},
             onSynchroniser = {},
-            onChangerLangue = {},
             onMessageAffiche = {}
         )
     }

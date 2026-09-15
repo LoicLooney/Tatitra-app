@@ -38,18 +38,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import mg.itu.tatitra_app.domain.Signalement
+import mg.itu.tatitra_app.ui.components.CompteAReboursResolution
 import mg.itu.tatitra_app.ui.components.StatutBadge
 import mg.itu.tatitra_app.util.formaterCoordonnees
 import mg.itu.tatitra_app.util.formaterDateHeure
+import mg.itu.tatitra_app.util.formaterDateIso
 import java.io.File
 
-/**
- * Point d'entrée navigable du détail : Room + actions de résolution (J5).
- */
 @Composable
 fun EcranDetailSignalementRoute(
     idLocal: String,
     onRetour: () -> Unit,
+    onOuvrirConfirmation: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DetailSignalementViewModel = viewModel(
         factory = DetailSignalementViewModel.factory(idLocal)
@@ -61,25 +61,20 @@ fun EcranDetailSignalementRoute(
         uiState = uiState,
         onRetour = onRetour,
         onProposer = viewModel::proposerResolution,
-        onConfirmer = viewModel::confirmerResolution,
-        onToujoursEndommage = viewModel::declarerToujoursEndommage,
+        onOuvrirConfirmation = onOuvrirConfirmation,
         onRechargerMeta = viewModel::rechargerDetailServeur,
         onMessageAffiche = viewModel::messageAffiche,
         modifier = modifier
     )
 }
 
-/**
- * Détail mobile : photo, statut, GPS + résolution (proposer / confirmer / endommagé).
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EcranDetailSignalement(
     uiState: DetailSignalementUiState,
     onRetour: () -> Unit,
     onProposer: () -> Unit,
-    onConfirmer: () -> Unit,
-    onToujoursEndommage: () -> Unit,
+    onOuvrirConfirmation: () -> Unit,
     onRechargerMeta: () -> Unit,
     onMessageAffiche: () -> Unit,
     modifier: Modifier = Modifier
@@ -140,8 +135,7 @@ fun EcranDetailSignalement(
             uiState = uiState,
             signalement = signalement,
             onProposer = onProposer,
-            onConfirmer = onConfirmer,
-            onToujoursEndommage = onToujoursEndommage,
+            onOuvrirConfirmation = onOuvrirConfirmation,
             onRechargerMeta = onRechargerMeta,
             modifier = Modifier
                 .fillMaxSize()
@@ -155,8 +149,7 @@ private fun ContenuDetail(
     uiState: DetailSignalementUiState,
     signalement: Signalement,
     onProposer: () -> Unit,
-    onConfirmer: () -> Unit,
-    onToujoursEndommage: () -> Unit,
+    onOuvrirConfirmation: () -> Unit,
     onRechargerMeta: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -192,7 +185,7 @@ private fun ContenuDetail(
             LigneInfo("Résolution proposée par", it)
         }
         signalement.dateLimiteConfirmation?.let {
-            LigneInfo("Confirmer avant", it)
+            LigneInfo("Confirmer avant", formaterDateIso(it))
         }
         signalement.motifReouverture?.let {
             LigneInfo("Motif de réouverture", it)
@@ -201,8 +194,7 @@ private fun ContenuDetail(
         SectionResolution(
             uiState = uiState,
             onProposer = onProposer,
-            onConfirmer = onConfirmer,
-            onToujoursEndommage = onToujoursEndommage,
+            onOuvrirConfirmation = onOuvrirConfirmation,
             onRechargerMeta = onRechargerMeta
         )
     }
@@ -212,11 +204,11 @@ private fun ContenuDetail(
 private fun SectionResolution(
     uiState: DetailSignalementUiState,
     onProposer: () -> Unit,
-    onConfirmer: () -> Unit,
-    onToujoursEndommage: () -> Unit,
+    onOuvrirConfirmation: () -> Unit,
     onRechargerMeta: () -> Unit
 ) {
     val disabled = uiState.actionEnCours
+    val signalement = uiState.signalement
 
     when {
         uiState.metaResolutionIncomplete -> {
@@ -265,37 +257,44 @@ private fun SectionResolution(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
+            CompteAReboursResolution(
+                echeanceIso = signalement?.dateLimiteConfirmation
+            )
             Text(
-                text = "L'administration a proposé une résolution. Confirmez ou signalez " +
+                text = "Ouvrez l'écran de confirmation pour valider ou signaler " +
                     "que le problème est toujours présent.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Button(
-                onClick = onConfirmer,
+                onClick = onOuvrirConfirmation,
                 enabled = !disabled,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Confirmer la résolution")
-            }
-            OutlinedButton(
-                onClick = onToujoursEndommage,
-                enabled = !disabled,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Toujours endommagé")
+                Text("Confirmer ou refuser")
             }
         }
 
         uiState.attenteConfirmationAdmin() -> {
+            CompteAReboursResolution(
+                echeanceIso = signalement?.dateLimiteConfirmation,
+                titre = "En attente de l'administration (J+7)"
+            )
             Text(
                 text = "Votre proposition est en attente de confirmation par l'administration.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            OutlinedButton(
+                onClick = onOuvrirConfirmation,
+                enabled = !disabled,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Voir le compte à rebours")
+            }
         }
 
-        uiState.signalement?.synchronise == false -> {
+        signalement?.synchronise == false -> {
             Text(
                 text = "Synchronisez ce signalement pour accéder aux actions de résolution.",
                 style = MaterialTheme.typography.bodySmall,

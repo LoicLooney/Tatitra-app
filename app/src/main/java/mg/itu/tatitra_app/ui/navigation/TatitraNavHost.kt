@@ -9,14 +9,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import mg.itu.tatitra_app.ui.home.EcranAccueilRoute
 import mg.itu.tatitra_app.ui.report.NouveauSignalementRoute
+import mg.itu.tatitra_app.ui.reports.EcranConfirmationResolutionRoute
 import mg.itu.tatitra_app.ui.reports.EcranDetailSignalementRoute
 import mg.itu.tatitra_app.ui.reports.EcranMesSignalementsRoute
 
-/**
- * Graphe de navigation de l'application (S5).
- *
- * « Mes signalements » / détail (J3) : données Room réelles (photo, statut, GPS).
- */
 @Composable
 fun TatitraNavHost(
     navController: NavHostController,
@@ -45,7 +41,6 @@ fun TatitraNavHost(
             NouveauSignalementRoute(
                 onRetour = { navController.popBackStack() },
                 onSignalementEnregistre = {
-                    // Retour à l'accueil : le nouveau signalement y apparaît en attente de synchronisation.
                     navController.popBackStack()
                 }
             )
@@ -56,6 +51,9 @@ fun TatitraNavHost(
                 onRetour = { navController.popBackStack() },
                 onOuvrirSignalement = { idLocal ->
                     navController.navigate(DestinationsTatitra.detailSignalement(idLocal))
+                },
+                onOuvrirConfirmation = { idLocal ->
+                    navController.navigate(DestinationsTatitra.confirmationResolution(idLocal))
                 }
             )
         }
@@ -68,6 +66,22 @@ fun TatitraNavHost(
         ) { entree ->
             val idLocal = entree.arguments?.getString(DestinationsTatitra.ARGUMENT_ID_LOCAL).orEmpty()
             EcranDetailSignalementRoute(
+                idLocal = idLocal,
+                onRetour = { navController.popBackStack() },
+                onOuvrirConfirmation = {
+                    navController.navigate(DestinationsTatitra.confirmationResolution(idLocal))
+                }
+            )
+        }
+
+        composable(
+            route = DestinationsTatitra.CONFIRMATION_RESOLUTION,
+            arguments = listOf(
+                navArgument(DestinationsTatitra.ARGUMENT_ID_LOCAL) { type = NavType.StringType }
+            )
+        ) { entree ->
+            val idLocal = entree.arguments?.getString(DestinationsTatitra.ARGUMENT_ID_LOCAL).orEmpty()
+            EcranConfirmationResolutionRoute(
                 idLocal = idLocal,
                 onRetour = { navController.popBackStack() }
             )

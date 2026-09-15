@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import mg.itu.tatitra_app.TatitraApplication
 import mg.itu.tatitra_app.data.repository.ResultatActionResolution
 import mg.itu.tatitra_app.data.repository.SignalementRepository
+import mg.itu.tatitra_app.domain.RoleResolution
 import mg.itu.tatitra_app.domain.Signalement
 import mg.itu.tatitra_app.domain.StatutSignalement
 
@@ -27,10 +28,6 @@ data class DetailSignalementUiState(
     val metaResolutionIncomplete: Boolean = false
 )
 
-/**
- * Détail + actions de résolution (J5).
- * Les champs résolution viennent de Room (source de vérité) après sync / actions API.
- */
 class DetailSignalementViewModel(
     private val idLocal: String,
     private val repository: SignalementRepository
@@ -147,11 +144,11 @@ fun DetailSignalementUiState.peutConfirmerOuRouvrir(): Boolean {
     val s = signalement ?: return false
     if (!s.synchronise || s.serverId == null) return false
     return s.statut == StatutSignalement.RESOLUTION_A_CONFIRMER &&
-        s.resolutionProposeePar == "ADMIN"
+        s.resolutionProposeePar == RoleResolution.ADMIN
 }
 
 fun DetailSignalementUiState.attenteConfirmationAdmin(): Boolean {
     val s = signalement ?: return false
     return s.statut == StatutSignalement.RESOLUTION_A_CONFIRMER &&
-        s.resolutionProposeePar == "CITOYEN"
+        s.resolutionProposeePar == RoleResolution.CITOYEN
 }

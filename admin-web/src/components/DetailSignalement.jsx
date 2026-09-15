@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
+import ConfirmResolutionModal from './ConfirmResolutionModal';
 import ConfirmStatutModal from './ConfirmStatutModal';
+import CompteARebours from './CompteARebours';
 import {
   LIBELLES_CATEGORIE,
   LIBELLES_STATUT,
   STATUTS_PROPOSITION_RESOLUTION,
   STATUTS_TRIAGE_ADMIN,
+  ROLES_RESOLUTION,
   estStatutTriage,
 } from '../constants';
 import {
@@ -16,11 +19,6 @@ import {
 } from '../services/api';
 import { getApiUrl } from '../services/apiClient';
 
-/**
- * Détail d'un signalement (J4) + actions résolution (J5).
- * Charge GET /api/signalements/:id pour garantir des données à jour.
- * Le select ne propose que le triage ; résolution via boutons dédiés.
- */
 function DetailSignalement({ id, onRetour, onStatutChange }) {
   const [signalement, setSignalement] = useState(null);
   const [chargement, setChargement] = useState(true);
@@ -29,6 +27,7 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
   const [confirmation, setConfirmation] = useState(null);
   const [enregistrementStatut, setEnregistrementStatut] = useState(false);
   const [actionResolution, setActionResolution] = useState(false);
+  const [modalResolution, setModalResolution] = useState(null);
 
   useEffect(() => {
     let annule = false;
@@ -86,6 +85,7 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
       const maj = await action();
       setSignalement(maj);
       setMessage(messageSucces);
+      setModalResolution(null);
       onStatutChange?.();
     } catch (echec) {
       setMessage(echec.message);
@@ -94,7 +94,7 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
     }
   }
 
-  const occupe = enregistrementStatut || actionResolution || Boolean(confirmation);
+  const occupe = enregistrementStatut || actionResolution || Boolean(confirmation) || Boolean(modalResolution);
 
   return (
     <div className="page">
@@ -175,6 +175,12 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
                     <dd>{formaterDate(signalement.dateLimiteConfirmation)}</dd>
                   </div>
                 )}
+                {signalement.dateReouverture && (
+                  <div>
+                    <dt>Rouvert le</dt>
+                    <dd>{formaterDate(signalement.dateReouverture)}</dd>
+                  </div>
+                )}
                 {signalement.motifReouverture && (
                   <div>
                     <dt>Motif de réouverture</dt>
@@ -182,6 +188,10 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
                   </div>
                 )}
               </dl>
+
+              {signalement.statut === 'RESOLUTION_A_CONFIRMER' && (
+                <CompteARebours echeanceIso={signalement.dateLimiteConfirmation} />
+              )}
 
               <SectionResolutionAdmin
                 signalement={signalement}
@@ -192,18 +202,8 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
                     'Résolution proposée. En attente de confirmation citoyenne (7 jours).'
                   )
                 }
-                onConfirmer={() =>
-                  executerResolution(
-                    () => confirmerResolution(id, 'ADMIN'),
-                    'Résolution confirmée.'
-                  )
-                }
-                onRouvrir={() =>
-                  executerResolution(
-                    () => rouvrirResolution(id, 'Toujours endommagé'),
-                    'Signalement rouvert (non résolu).'
-                  )
-                }
+                onDemanderConfirmer={() => setModalResolution('confirmer')}
+                onDemanderRefuser={() => setModalResolution('refuser')}
               />
             </div>
           </div>
@@ -218,14 +218,30 @@ function DetailSignalement({ id, onRetour, onStatutChange }) {
         onConfirmer={confirmerChangementStatut}
         onAnnuler={() => !enregistrementStatut && setConfirmation(null)}
       />
+
+      <ConfirmResolutionModal
+        ouvert={Boolean(modalResolution)}
+        mode={modalResolution}
+        signalement={signalement}
+        enCours={actionResolution}
+        onConfirmer={() =>
+          executerResolution(
+            () => confirmerResolution(id, 'ADMIN'),
+            'Résolution confirmée.'
+          )
+        }
+        onRefuser={(motif) =>
+          executerResolution(
+            () => rouvrirResolution(id, motif),
+            'Signalement rouvert (non résolu).'
+          )
+        }
+        onAnnuler={() => !actionResolution && setModalResolution(null)}
+      />
     </div>
   );
 }
 
-/**
- * Select triage uniquement. Hors triage : libellé en lecture seule
- * (parcours résolution via les boutons ci-dessous).
- */
 function SelectTriageStatut({ statut, disabled, onDemander }) {
   if (!estStatutTriage(statut)) {
     return (
@@ -254,9 +270,33 @@ function SelectTriageStatut({ statut, disabled, onDemander }) {
   );
 }
 
-function SectionResolutionAdmin({ signalement, disabled, onProposer, onConfirmer, onRouvrir }) {
+function SectionResolutionAdmin({
+  signalement,
+  disabled,
+  onProposer,
+  onDemanderConfirmer,
+  onDemanderRefuser,
+}) {
   const statut = signalement.statut;
   const proposePar = signalement.resolutionProposeePar;
+
+  if (statut === 'REOUVERT_NON_RESOLU') {
+    return (
+      <div className="detail-resolution detail-resolution-rouvert">
+        <h3>Signalement rouvert</h3>
+        <p className="aide">
+          Ce dossier a été rouvert
+          {signalement.motifReouverture ? ` : ${signalement.motifReouverture}` : ''}. Vous
+          pouvez le reprendre via le triage ou proposer à nouveau une résolution.
+        </p>
+        <div className="detail-resolution-actions">
+          <button type="button" className="bouton" disabled={disabled} onClick={onProposer}>
+            Proposer une résolution
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (STATUTS_PROPOSITION_RESOLUTION.includes(statut)) {
     return (
@@ -276,47 +316,48 @@ function SectionResolutionAdmin({ signalement, disabled, onProposer, onConfirmer
   }
 
   if (statut === 'RESOLUTION_A_CONFIRMER') {
-    const peutConfirmer = proposePar === 'CITOYEN';
+    const peutConfirmer = proposePar === ROLES_RESOLUTION.CITOYEN;
     return (
       <div className="detail-resolution">
-        <h3>Confirmation</h3>
+        <h3>Confirmation / refus</h3>
         {peutConfirmer ? (
           <>
             <p className="aide">
-              Le citoyen a proposé une résolution. Confirmez ou signalez que le problème est
-              toujours présent.
+              Le citoyen a proposé une résolution. Confirmez ou refusez avec un motif.
             </p>
             <div className="detail-resolution-actions">
-              <button type="button" className="bouton" disabled={disabled} onClick={onConfirmer}>
-                Confirmer la résolution
+              <button
+                type="button"
+                className="bouton"
+                disabled={disabled}
+                onClick={onDemanderConfirmer}
+              >
+                Confirmer
               </button>
               <button
                 type="button"
                 className="bouton bouton-secondaire"
                 disabled={disabled}
-                onClick={onRouvrir}
+                onClick={onDemanderRefuser}
               >
-                Toujours endommagé
+                Refuser
               </button>
             </div>
           </>
         ) : (
           <>
             <p className="aide">
-              Proposition admin en attente de confirmation citoyenne
-              {signalement.dateLimiteConfirmation
-                ? ` (avant le ${formaterDate(signalement.dateLimiteConfirmation)})`
-                : ''}
-              .
+              Proposition admin en attente de confirmation citoyenne. Vous pouvez encore
+              rouvrir le dossier si le problème n&apos;est pas corrigé.
             </p>
             <div className="detail-resolution-actions">
               <button
                 type="button"
                 className="bouton bouton-secondaire"
                 disabled={disabled}
-                onClick={onRouvrir}
+                onClick={onDemanderRefuser}
               >
-                Rouvrir (toujours endommagé)
+                Refuser / rouvrir
               </button>
             </div>
           </>
@@ -342,7 +383,6 @@ function PhotoSignalement({ photoUrl }) {
   );
 }
 
-/** Accepte une URL absolue ou un chemin relatif servi par le backend. */
 function resoudreUrlPhoto(photoUrl) {
   if (!photoUrl) return null;
   if (/^https?:\/\//i.test(photoUrl)) return photoUrl;

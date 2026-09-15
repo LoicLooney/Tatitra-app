@@ -2,7 +2,6 @@ const db = require('../db');
 const { STATUT_PAR_DEFAUT } = require('../constants');
 const { ErreurApi } = require('../middleware/errorHandler');
 
-/** Convertit une ligne PostgreSQL (snake_case) vers le contrat API (camelCase). */
 function versApi(row) {
   if (!row) return null;
   return {
@@ -37,13 +36,11 @@ const SELECT_COMPLET = `
   FROM signalements
 `;
 
-// GET /api/signalements — liste (admin / rafraîchissement).
 exports.lister = async () => {
   const result = await db.query(`${SELECT_COMPLET} ORDER BY date_creation DESC`);
   return result.rows.map(versApi);
 };
 
-// GET /api/signalements/:id — détail d'un signalement.
 exports.recupererParId = async (id) => {
   const result = await db.query(`${SELECT_COMPLET} WHERE id = $1`, [id]);
   const signalement = versApi(result.rows[0]);
@@ -53,23 +50,13 @@ exports.recupererParId = async (id) => {
   return signalement;
 };
 
-/**
- * Crée un signalement à partir d'un corps déjà validé.
- * Idempotence sur client_id : un rejeu renvoie l'existant (cree: false).
- */
 exports.creer = async (payload) => {
-  const existant = await db.query(
-    'SELECT * FROM signalements WHERE client_id = $1',
-    [payload.clientId]
-  );
-  if (existant.rows[0]) {
-    return { signalement: versApi(existant.rows[0]), cree: false };
-  }
-
+  // ON CONFLICT : évite 23505 si deux syncs concurrentes créent le même client_id.
   const result = await db.query(
     `INSERT INTO signalements
        (client_id, categorie, description, latitude, longitude, photo_url, statut, is_demo)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (client_id) DO NOTHING
      RETURNING *`,
     [
       payload.clientId,
@@ -83,13 +70,19 @@ exports.creer = async (payload) => {
     ]
   );
 
-  return { signalement: versApi(result.rows[0]), cree: true };
+  if (result.rows[0]) {
+    return { signalement: versApi(result.rows[0]), cree: true };
+  }
+
+  const existant = await db.query(`${SELECT_COMPLET} WHERE client_id = $1`, [
+    payload.clientId,
+  ]);
+  if (!existant.rows[0]) {
+    throw new ErreurApi(500, 'Création conflictuelle sans ligne existante');
+  }
+  return { signalement: versApi(existant.rows[0]), cree: false };
 };
 
-/**
- * Met à jour le statut d'un signalement (admin / PATCH).
- * Le statut a déjà été validé par le middleware.
- */
 exports.mettreAJourStatut = async (id, statut) => {
   const result = await db.query(
     `UPDATE signalements
