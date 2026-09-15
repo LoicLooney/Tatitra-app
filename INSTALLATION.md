@@ -49,8 +49,9 @@ sdk.dir=C\:\\Users\\TON_NOM\\AppData\\Local\\Android\\Sdk
 ```bash
 cd backend
 npm install
-cp .env.example .env
-npm run dev          # ou : npm start
+cp .env.example .env   # puis renseigner DATABASE_URL — obligatoire
+npm run db:init        # crée la table signalements (une seule fois)
+npm run dev            # ou : npm start
 ```
 
 Vérification : `http://localhost:3000/health` doit répondre `{"status":"ok","db":"up"}`
@@ -69,15 +70,28 @@ Le serveur écoute sur `0.0.0.0` : accessible depuis le téléphone de démo sur
 | `SUPABASE_BUCKET` | Nom du bucket de stockage | `signalements` |
 | `MAX_UPLOAD_SIZE_MB` | Taille maximale d’une photo | `5` |
 | `PUBLIC_BASE_URL` | URL publique du backend, pour les liens des photos en stockage local | `http://localhost:$PORT` |
-| `DATABASE_PASSWORD` / `DATABASE_URL` | PostgreSQL Supabase | branchement en cours |
+| **`DATABASE_URL`** | PostgreSQL / Supabase — **obligatoire** | toute l’API répond 500 et `/health` renvoie 503 |
+| `TATITRA_ADMIN_KEY` | Clé exigée pour agir en tant qu’ADMIN sur les endpoints de résolution | rôle ADMIN accepté sans contrôle (mode salle de TP) |
+| `DATABASE_CA_CERT` | Chemin du certificat d’autorité de la base, pour vérifier réellement TLS | TLS actif mais **non vérifié** (chaîne Supabase auto-signée) — un avertissement est affiché au démarrage |
+| `DISABLE_CRON` | `1` désactive le job horaire J+7 | job actif |
 
 **Les valeurs réelles ne sont jamais dans le dépôt.** Demande-les à ton binôme par un canal
 privé, ou mieux : fais-toi inviter sur le projet Supabase (*Organization settings → Team →
 Invite member*) et lis les clés toi-même dans *Project Settings → API Keys*.
 
-> Le backend stocke actuellement les signalements **en mémoire** : ils disparaissent à chaque
-> redémarrage. Le branchement PostgreSQL/Supabase est la tâche J1 du parcours de traitement.
-> Les photos envoyées à Supabase Storage, elles, sont bien persistantes.
+> Les signalements sont stockés dans **PostgreSQL (Supabase)** : ils survivent au redémarrage
+> du backend. Les photos vont dans Supabase Storage, ou dans `backend/uploads/` si les clés
+> Supabase ne sont pas configurées.
+
+### Tests du backend
+
+```bash
+npm test               # lanceur intégré de Node, aucune dépendance supplémentaire
+```
+
+55 tests couvrent la validation, l’idempotence, la validation croisée de résolution, la règle
+J+7 et la cohérence du vocabulaire métier entre les trois parties du projet. Ils utilisent une
+base simulée : aucune connexion PostgreSQL n’est nécessaire pour les lancer.
 
 ---
 
@@ -124,9 +138,13 @@ sans Wi-Fi.
 ./gradlew :app:testDebugUnitTest
 ```
 
+48 tests : règles de saisie, conversions Room ↔ domaine, comportement du Repository en ligne /
+hors ligne / face à un refus serveur, et règles d’affichage des actions de résolution. Ils
+tournent sur la JVM avec une base et une API simulées — ni téléphone ni serveur requis.
+
 ⚠️ Ils échouent si le projet est stocké dans un dossier **contenant des accents**
 (`Développement Mobile`) : le worker de test Gradle ne retrouve pas ses classes. Les mêmes tests
-passent (9/9) depuis un chemin sans accent, par exemple `C:\dev\Tatitra-app`.
+passent (48/48) depuis un chemin sans accent, par exemple `C:\dev\Tatitra-app`.
 
 ---
 
@@ -230,12 +248,22 @@ Tatitra-app/
 | `POST` | `/api/signalements` | disponible — validation + idempotence par `clientId` |
 | `POST` | `/api/uploads` | disponible — champ `photo`, Supabase Storage ou disque local |
 | `GET` | `/api/signalements/:id` | disponible |
-| `PATCH` | `/api/signalements/:id/statut` | disponible |
-| `POST` | `/api/signalements/:id/resolution` | disponible — propose (rôle CITOYEN/ADMIN) |
-| `POST` | `/api/signalements/:id/resolution/confirm` | disponible |
-| `POST` | `/api/signalements/:id/resolution/reopen` | disponible — « toujours endommagé » |
-| `POST` | `/api/signalements/jobs/expiration-resolution` | disponible — job J+7 manuel |
+| `PATCH` | `/api/signalements/:id/statut` | disponible — triage uniquement (les statuts de résolution sont refusés) |
+| `POST` | `/api/signalements/:id/resolution` | disponible — **rôle obligatoire** |
+| `POST` | `/api/signalements/:id/resolution/confirm` | disponible — **rôle obligatoire**, refusé si c'est l'auteur de la proposition |
+| `POST` | `/api/signalements/:id/resolution/reopen` | disponible — **rôle obligatoire** |
+| `POST` | `/api/signalements/jobs/expiration-resolution` | disponible — job J+7 manuel, **réservé au rôle ADMIN** |
 | `GET` | `/api/notifications` | à venir |
+
+### Le rôle sur les endpoints de résolution
+
+Les quatre endpoints ci-dessus exigent un rôle, transmis au choix dans le corps JSON
+(`{"role": "CITOYEN"}`) ou dans l'en-tête `X-Tatitra-Role`. Les valeurs acceptées sont
+`CITOYEN` et `ADMIN` ; toute autre valeur, ou son absence, est refusée en 400.
+
+Si `TATITRA_ADMIN_KEY` est définie dans `backend/.env`, agir en tant qu'`ADMIN` exige en plus
+l'en-tête `X-Tatitra-Admin-Key`. Sans cette variable, le rôle `ADMIN` est accepté sans contrôle :
+pratique en salle de TP, à définir pour une démonstration publique.
 
 ---
 
