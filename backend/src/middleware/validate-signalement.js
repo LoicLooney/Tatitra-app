@@ -13,9 +13,11 @@ const {
 // Statuts utilisables côté serveur / admin (EN_ATTENTE_SYNC reste local mobile uniquement).
 const STATUTS_API = STATUTS.filter((s) => s !== 'EN_ATTENTE_SYNC');
 
-// Le cahier des charges définit clientId comme « UUID/String » : on accepte donc tout
-// identifiant opaque raisonnable, pas seulement des caractères hexadécimaux.
-const CLIENT_ID_REGEX = /^[A-Za-z0-9_-]{8,64}$/;
+// La colonne signalements.client_id est de type UUID : tout identifiant d'une autre forme
+// serait rejeté par PostgreSQL en 500. On le refuse ici, proprement, en 400.
+// Côté Android, idLocal vient de UUID.randomUUID() : le format correspond déjà.
+const CLIENT_ID_REGEX =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 /**
  * Valide le corps d'une création de signalement avant tout accès à la base (§11.4).
