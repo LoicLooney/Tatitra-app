@@ -4,8 +4,6 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// URL de l'API, surchargeable sans toucher au code : -Ptatitra.apiBaseUrl=... ou gradle.properties.
-// 10.0.2.2 = "localhost de la machine hôte" vu depuis l'émulateur Android.
 val apiBaseUrl: String = (project.findProperty("tatitra.apiBaseUrl") as String?)
     ?: "http://10.0.2.2:3000/"
 
@@ -81,8 +79,8 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     implementation(libs.play.services.location)
 
-    // Préférences persistantes (langue, dernière sync)
-    implementation(libs.androidx.datastore.preferences)
+    // Préférences persistantes (dernière sync)
+    implementation(libs.datastore.preferences)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

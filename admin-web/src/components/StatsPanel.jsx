@@ -1,27 +1,35 @@
 import { CATEGORIES, LIBELLES_CATEGORIE, LIBELLES_STATUT, STATUTS } from '../constants';
 
-/**
- * Synthèse chiffrée des signalements reçus (F-ADM-10).
- * Tout est calculé côté client à partir de la liste déjà chargée : pas d'endpoint
- * de statistiques supplémentaire à maintenir pour le MVP.
- */
-function StatsPanel({ signalements }) {
+function StatsPanel({ signalements, onFiltrerStatut }) {
   const parStatut = compter(signalements, (item) => item.statut);
   const parCategorie = compter(signalements, (item) => item.categorie);
   const nombreDemo = signalements.filter((item) => item.isDemo).length;
-  const nombreAvecPhoto = signalements.filter((item) => Boolean(item.photoUrl)).length;
+  const nombreAvecPhoto = signalements.filter((item) => item.photoUrl).length;
 
   return (
     <section className="carte">
       <h2>Synthèse</h2>
 
       <div className="stats-resume">
-        <ChiffreCle valeur={signalements.length} libelle="Signalements reçus" />
+        <ChiffreCle
+          valeur={signalements.length}
+          libelle="Signalements reçus"
+          onClick={onFiltrerStatut ? () => onFiltrerStatut(null) : undefined}
+        />
         <ChiffreCle
           valeur={parStatut.RESOLUTION_A_CONFIRMER || 0}
           libelle="Résolutions à confirmer"
+          onClick={
+            onFiltrerStatut ? () => onFiltrerStatut('RESOLUTION_A_CONFIRMER') : undefined
+          }
         />
-        <ChiffreCle valeur={parStatut.REOUVERT_NON_RESOLU || 0} libelle="Rouverts" />
+        <ChiffreCle
+          valeur={parStatut.REOUVERT_NON_RESOLU || 0}
+          libelle="Rouverts"
+          onClick={
+            onFiltrerStatut ? () => onFiltrerStatut('REOUVERT_NON_RESOLU') : undefined
+          }
+        />
         <ChiffreCle valeur={nombreAvecPhoto} libelle="Avec photo" />
         <ChiffreCle valeur={nombreDemo} libelle="Données de démonstration" />
       </div>
@@ -48,7 +56,15 @@ function StatsPanel({ signalements }) {
   );
 }
 
-function ChiffreCle({ valeur, libelle }) {
+function ChiffreCle({ valeur, libelle, onClick }) {
+  if (onClick) {
+    return (
+      <button type="button" className="chiffre-cle chiffre-cle-bouton" onClick={onClick}>
+        <span className="chiffre-cle-valeur">{valeur}</span>
+        <span className="chiffre-cle-libelle">{libelle}</span>
+      </button>
+    );
+  }
   return (
     <div className="chiffre-cle">
       <span className="chiffre-cle-valeur">{valeur}</span>

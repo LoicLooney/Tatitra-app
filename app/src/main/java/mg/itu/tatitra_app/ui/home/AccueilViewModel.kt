@@ -14,14 +14,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import mg.itu.tatitra_app.TatitraApplication
-import mg.itu.tatitra_app.data.local.PreferencesDataStore
 import mg.itu.tatitra_app.data.repository.PreferencesRepository
 import mg.itu.tatitra_app.data.repository.SignalementRepository
+import mg.itu.tatitra_app.domain.RoleResolution
 import mg.itu.tatitra_app.domain.Signalement
 import mg.itu.tatitra_app.domain.StatutSignalement
 import mg.itu.tatitra_app.worker.SyncScheduler
 
-/** État affiché par l'écran Accueil. */
 data class AccueilUiState(
     val signalementsRecents: List<Signalement> = emptyList(),
     val nombreEnAttente: Int = 0,
@@ -30,14 +29,11 @@ data class AccueilUiState(
     val nombreResolus: Int = 0,
     val synchronisationEnCours: Boolean = false,
     val messageSynchronisation: String? = null,
-    /** Préférences DataStore (J4), relues au démarrage. */
-    val langue: String = PreferencesDataStore.LANGUE_PAR_DEFAUT,
     val derniereSyncMs: Long? = null
 ) {
     val aDesSignalements: Boolean get() = signalementsRecents.isNotEmpty()
 }
 
-/** Détenteur de l'état de l'écran Accueil : l'UI observe, les événements remontent ici (S6). */
 class AccueilViewModel(
     private val application: Application,
     private val repository: SignalementRepository,
@@ -50,20 +46,15 @@ class AccueilViewModel(
         combine(
             repository.observerSignalements(),
             etatSynchronisation,
-            preferencesRepository.observerLangue(),
             preferencesRepository.observerDerniereSyncMs()
-        ) { signalements, sync, langue, derniereSyncMs ->
-            construireEtat(signalements, sync, langue, derniereSyncMs)
+        ) { signalements, sync, derniereSyncMs ->
+            construireEtat(signalements, sync, derniereSyncMs)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(DUREE_ABONNEMENT_MS),
             initialValue = AccueilUiState()
         )
 
-    /**
-     * Synchronisation demandée manuellement (bouton « Réessayer »).
-     * La synchronisation automatique reste assurée par WorkManager.
-     */
     fun synchroniserMaintenant() {
         if (etatSynchronisation.value.enCours) return
 
@@ -72,7 +63,7 @@ class AccueilViewModel(
 
             val resultat = repository.synchroniserEnAttente()
             val rafraichi = repository.rafraichirStatuts()
-            // Pourquoi : ne pas afficher une « dernière sync » si rien n'a réellement abouti.
+            // Ne pas marquer « dernière sync » si rien n'a réellement abouti.
             if (resultat.nombreEnvoyes > 0 || rafraichi) {
                 preferencesRepository.enregistrerDerniereSync()
             }
@@ -90,13 +81,6 @@ class AccueilViewModel(
         }
     }
 
-    /** Change la langue et la persiste dans DataStore (relue au prochain démarrage). */
-    fun changerLangue(code: String) {
-        viewModelScope.launch {
-            preferencesRepository.definirLangue(code)
-        }
-    }
-
     fun messageAffiche() {
         etatSynchronisation.update { it.copy(message = null) }
     }
@@ -104,7 +88,6 @@ class AccueilViewModel(
     private fun construireEtat(
         signalements: List<Signalement>,
         sync: EtatSynchronisation,
-        langue: String,
         derniereSyncMs: Long?
     ): AccueilUiState = AccueilUiState(
         signalementsRecents = signalements.take(NOMBRE_SIGNALEMENTS_RECENTS),
@@ -113,12 +96,12 @@ class AccueilViewModel(
             it.synchronise && it.statut in STATUTS_EN_TRAITEMENT
         },
         nombreAConfirmer = signalements.count {
-            it.statut == StatutSignalement.RESOLUTION_A_CONFIRMER
+            it.statut == StatutSignalement.RESOLUTION_A_CONFIRMER &&
+                it.resolutionProposeePar == RoleResolution.ADMIN
         },
         nombreResolus = signalements.count { it.statut == StatutSignalement.RESOLU_CONFIRME },
         synchronisationEnCours = sync.enCours,
         messageSynchronisation = sync.message,
-        langue = langue,
         derniereSyncMs = derniereSyncMs
     )
 

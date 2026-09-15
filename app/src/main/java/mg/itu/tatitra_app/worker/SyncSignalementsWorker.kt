@@ -6,10 +6,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import mg.itu.tatitra_app.TatitraApplication
 
-/**
- * Envoie au serveur les signalements créés hors ligne, dès qu'une connexion est disponible.
- * Survit à la fermeture de l'application : c'est WorkManager qui le relance (F-CIT-08).
- */
 class SyncSignalementsWorker(
     context: Context,
     parametres: WorkerParameters
@@ -21,9 +17,8 @@ class SyncSignalementsWorker(
         val preferences = container.preferencesRepository
 
         val resultat = repository.synchroniserEnAttente()
-        // Une fois les envois faits, on relit les statuts côté serveur (prise en charge, résolution).
         val rafraichi = repository.rafraichirStatuts()
-        // Pourquoi : ne pas marquer une sync réussie si réseau / serveur ont échoué.
+        // Ne pas marquer « dernière sync » si rien n'a réellement abouti.
         if (resultat.nombreEnvoyes > 0 || rafraichi) {
             preferences.enregistrerDerniereSync()
         }
@@ -35,7 +30,6 @@ class SyncSignalementsWorker(
         )
 
         return when {
-            // Panne temporaire : WorkManager réessaiera avec son délai exponentiel.
             resultat.doitReessayer && runAttemptCount < NOMBRE_TENTATIVES_MAX -> Result.retry()
             resultat.doitReessayer -> Result.failure()
             else -> Result.success()
@@ -44,8 +38,6 @@ class SyncSignalementsWorker(
 
     private companion object {
         const val TAG = "SyncSignalementsWorker"
-
-        // Au-delà, on arrête d'insister : l'utilisateur garde le bouton « Réessayer ».
         const val NOMBRE_TENTATIVES_MAX = 5
     }
 }

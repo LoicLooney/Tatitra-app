@@ -65,8 +65,8 @@ androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterfa
 # GPS : Fused Location Provider
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
-# DataStore Preferences (J4) : langue, dernière synchronisation
-androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+# DataStore Preferences (J4) : dernière synchronisation
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

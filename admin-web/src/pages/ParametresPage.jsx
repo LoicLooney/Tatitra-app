@@ -3,12 +3,6 @@ import { getApiUrl, getApiUrlParDefaut, setApiUrl } from '../services/apiClient'
 import { getHealth, lancerJobJ7 } from '../services/api';
 import { fermerSession, ouvrirSession } from '../services/session';
 
-/**
- * Paramètres de l'administration : adresse du backend et session agent simplifiée.
- * Permet de rebrancher l'interface sur l'API de démonstration sans rebuild (§20.2).
- *
- * La session vient de App : l'en-tête doit se mettre à jour en même temps que cette page.
- */
 function ParametresPage({ session, onSessionChangee }) {
   const [urlSaisie, setUrlSaisie] = useState(getApiUrl());
   const [nomAgent, setNomAgent] = useState('');
