@@ -42,7 +42,9 @@ data class ResolutionRoleRequest(
 )
 
 data class ResolutionReopenRequest(
-    @SerializedName("motif") val motif: String? = null
+    @SerializedName("motif") val motif: String? = null,
+    /** Le backend exige le rôle sur la réouverture comme sur les autres actions. */
+    @SerializedName("role") val role: String
 )
 
 /** Réponse de POST /api/uploads : l'URL publique du fichier stocké. */

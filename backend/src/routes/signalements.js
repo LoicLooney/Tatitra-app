@@ -9,14 +9,16 @@ const {
 const {
   validerRoleResolution,
   validerMotifReouverture,
+  exigerRoleAdmin,
 } = require('../middleware/validate-resolution');
 
 // GET /api/signalements — liste
 router.get('/', signalementsController.lister);
 
-// Job J+7 (avant /:id pour ne pas capturer "jobs" comme id)
+// Job J+7 (avant /:id pour ne pas capturer "jobs" comme id) — réservé à l'administration
 router.post(
   '/jobs/expiration-resolution',
+  exigerRoleAdmin,
   resolutionController.expirer
 );
 
@@ -26,8 +28,11 @@ router.post(
   validerRoleResolution,
   resolutionController.confirmer
 );
+// Rouvrir exige un rôle au même titre que proposer et confirmer : sans cela, la clé
+// admin protégeait la confirmation mais pas la réouverture.
 router.post(
   '/:id/resolution/reopen',
+  validerRoleResolution,
   validerMotifReouverture,
   resolutionController.rouvrir
 );

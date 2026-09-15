@@ -183,7 +183,8 @@ class SignalementRepository(
         executerResolution(idLocal) { serverId ->
             api.rouvrirResolution(
                 serverId,
-                ResolutionReopenRequest(motif = "Toujours endommagé")
+                ResolutionReopenRequest(motif = "Toujours endommagé", role = ROLE_CITOYEN),
+                ROLE_CITOYEN
             )
         }
 

@@ -52,6 +52,7 @@ interface TatitraApi {
     @POST("api/signalements/{id}/resolution/reopen")
     suspend fun rouvrirResolution(
         @Path("id") id: String,
-        @Body request: ResolutionReopenRequest
+        @Body request: ResolutionReopenRequest,
+        @Header("X-Tatitra-Role") role: String = "CITOYEN"
     ): SignalementResponse
 }

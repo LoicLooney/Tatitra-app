@@ -41,18 +41,20 @@ export async function confirmerResolution(id, role = 'ADMIN') {
 }
 
 /** POST /api/signalements/:id/resolution/reopen */
-export async function rouvrirResolution(id, motif = 'Toujours endommagé') {
+export async function rouvrirResolution(id, motif = 'Toujours endommagé', role = 'ADMIN') {
   return requeteApi(`/api/signalements/${id}/resolution/reopen`, {
     method: 'POST',
-    body: JSON.stringify({ motif }),
+    headers: { 'X-Tatitra-Role': role },
+    body: JSON.stringify({ motif, role }),
   });
 }
 
 /** POST /api/signalements/jobs/expiration-resolution — job J+7 manuel */
-export async function lancerJobJ7() {
+export async function lancerJobJ7(role = 'ADMIN') {
   return requeteApi('/api/signalements/jobs/expiration-resolution', {
     method: 'POST',
-    body: '{}',
+    headers: { 'X-Tatitra-Role': role },
+    body: JSON.stringify({ role }),
   });
 }
 
