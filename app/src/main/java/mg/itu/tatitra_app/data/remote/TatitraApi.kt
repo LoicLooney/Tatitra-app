@@ -3,6 +3,7 @@ package mg.itu.tatitra_app.data.remote
 import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
@@ -30,4 +31,27 @@ interface TatitraApi {
     @Multipart
     @POST("api/uploads")
     suspend fun envoyerPhoto(@Part photo: MultipartBody.Part): UploadResponse
+
+    /** POST /api/signalements/{id}/resolution — propose une résolution (J5). */
+    @POST("api/signalements/{id}/resolution")
+    suspend fun proposerResolution(
+        @Path("id") id: String,
+        @Body request: ResolutionRoleRequest,
+        @Header("X-Tatitra-Role") role: String = "CITOYEN"
+    ): SignalementResponse
+
+    /** POST /api/signalements/{id}/resolution/confirm — confirme la proposition. */
+    @POST("api/signalements/{id}/resolution/confirm")
+    suspend fun confirmerResolution(
+        @Path("id") id: String,
+        @Body request: ResolutionRoleRequest,
+        @Header("X-Tatitra-Role") role: String = "CITOYEN"
+    ): SignalementResponse
+
+    /** POST /api/signalements/{id}/resolution/reopen — toujours endommagé. */
+    @POST("api/signalements/{id}/resolution/reopen")
+    suspend fun rouvrirResolution(
+        @Path("id") id: String,
+        @Body request: ResolutionReopenRequest
+    ): SignalementResponse
 }

@@ -1,5 +1,7 @@
 const {
   CATEGORIES,
+  STATUTS,
+  STATUTS_TRIAGE_ADMIN,
   LONGUEUR_DESCRIPTION_MIN,
   LONGUEUR_DESCRIPTION_MAX,
   LATITUDE_MIN,
@@ -7,6 +9,9 @@ const {
   LONGITUDE_MIN,
   LONGITUDE_MAX,
 } = require('../constants');
+
+// Statuts utilisables côté serveur / admin (EN_ATTENTE_SYNC reste local mobile uniquement).
+const STATUTS_API = STATUTS.filter((s) => s !== 'EN_ATTENTE_SYNC');
 
 // Le cahier des charges définit clientId comme « UUID/String » : on accepte donc tout
 // identifiant opaque raisonnable, pas seulement des caractères hexadécimaux.
@@ -77,9 +82,38 @@ function validerCreationSignalement(req, res, next) {
   return next();
 }
 
+/**
+ * Valide le corps d'un PATCH /api/signalements/:id/statut (triage uniquement).
+ * Les statuts de résolution (proposer / confirmer / rouvrir) passent par /resolution.
+ */
+function validerChangementStatut(req, res, next) {
+  const erreurs = [];
+  const corps = req.body || {};
+  const statut = typeof corps.statut === 'string' ? corps.statut.trim() : '';
+
+  if (!statut) {
+    erreurs.push('statut manquant');
+  } else if (!STATUTS_API.includes(statut)) {
+    erreurs.push(`statut inconnu (valeurs acceptées : ${STATUTS_API.join(', ')})`);
+  } else if (!STATUTS_TRIAGE_ADMIN.includes(statut)) {
+    // Pourquoi : un PATCH libre vers RESOLUTION_* contourne la double validation J5.
+    erreurs.push(
+      `statut réservé au parcours résolution — utilisez POST /resolution ` +
+        `(triage accepté : ${STATUTS_TRIAGE_ADMIN.join(', ')})`
+    );
+  }
+
+  if (erreurs.length > 0) {
+    return res.status(400).json({ error: 'Changement de statut invalide', details: erreurs });
+  }
+
+  req.statutValide = statut;
+  return next();
+}
+
 function estDansIntervalle(valeur, minimum, maximum) {
   const nombre = Number(valeur);
   return Number.isFinite(nombre) && nombre >= minimum && nombre <= maximum;
 }
 
-module.exports = { validerCreationSignalement };
+module.exports = { validerCreationSignalement, validerChangementStatut };

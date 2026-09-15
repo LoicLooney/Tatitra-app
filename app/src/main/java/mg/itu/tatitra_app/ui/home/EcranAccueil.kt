@@ -52,10 +52,6 @@ import mg.itu.tatitra_app.ui.components.StatutBadge
 import mg.itu.tatitra_app.ui.theme.TatitraappTheme
 import mg.itu.tatitra_app.util.formaterDateHeure
 
-/**
- * Point d'entrée navigable : relie le ViewModel à l'écran.
- * L'écran lui-même reste sans logique métier (§2.2 des règles de code).
- */
 @Composable
 fun EcranAccueilRoute(
     onNouveauSignalement: () -> Unit,
@@ -125,6 +121,10 @@ fun EcranAccueil(
                 onSynchroniser = onSynchroniser
             )
 
+            CartePreferences(
+                derniereSyncMs = uiState.derniereSyncMs
+            )
+
             SectionSignalementsRecents(
                 uiState = uiState,
                 onOuvrirSignalement = onOuvrirSignalement,
@@ -150,7 +150,31 @@ private fun EnteteTatitra(modifier: Modifier = Modifier) {
     }
 }
 
-/** Compteurs « Mes signalements » et action de synchronisation manuelle. */
+@Composable
+private fun CartePreferences(
+    derniereSyncMs: Long?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Préférences", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Dernière synchronisation : " +
+                    if (derniereSyncMs == null) "jamais"
+                    else formaterDateHeure(derniereSyncMs),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 @Composable
 private fun CarteSynthese(
     uiState: AccueilUiState,

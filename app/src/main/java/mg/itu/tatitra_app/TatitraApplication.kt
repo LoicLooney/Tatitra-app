@@ -1,8 +1,10 @@
 package mg.itu.tatitra_app
 
 import android.app.Application
+import mg.itu.tatitra_app.data.local.PreferencesDataStore
 import mg.itu.tatitra_app.data.local.TatitraDatabase
 import mg.itu.tatitra_app.data.remote.ApiClient
+import mg.itu.tatitra_app.data.repository.PreferencesRepository
 import mg.itu.tatitra_app.data.repository.SignalementRepository
 import mg.itu.tatitra_app.worker.SyncScheduler
 
@@ -12,11 +14,17 @@ import mg.itu.tatitra_app.worker.SyncScheduler
  */
 class ConteneurApplication(application: Application) {
 
+    private val preferencesDataStore = PreferencesDataStore(application)
+
     val signalementRepository: SignalementRepository by lazy {
         SignalementRepository(
             dao = TatitraDatabase.obtenirInstance(application).signalementDao(),
             api = ApiClient.api
         )
+    }
+
+    val preferencesRepository: PreferencesRepository by lazy {
+        PreferencesRepository(preferencesDataStore)
     }
 }
 

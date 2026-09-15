@@ -53,7 +53,11 @@ cp .env.example .env
 npm run dev          # ou : npm start
 ```
 
-Vérification : `http://localhost:3000/health` doit répondre `{"status":"ok"}`.
+Vérification : `http://localhost:3000/health` doit répondre `{"status":"ok","db":"up"}`
+(ou `npm run health` dans `backend/`).
+
+Le serveur écoute sur `0.0.0.0` : accessible depuis le téléphone de démo sur le même Wi-Fi
+(`http://IP_DU_PC:3000/health`).
 
 ### Variables d’environnement (`backend/.env`)
 
@@ -82,7 +86,7 @@ Invite member*) et lis les clés toi-même dans *Project Settings → API Keys*.
 ```bash
 cd admin-web
 npm install
-npm run dev          # http://localhost:5173
+npm run dev          # http://localhost:5173 (+ URL Network pour le téléphone)
 ```
 
 Aucune configuration n’est nécessaire : l’interface vise `http://localhost:3000` par défaut, et
@@ -225,9 +229,12 @@ Tatitra-app/
 | `GET` | `/api/signalements` | disponible |
 | `POST` | `/api/signalements` | disponible — validation + idempotence par `clientId` |
 | `POST` | `/api/uploads` | disponible — champ `photo`, Supabase Storage ou disque local |
-| `GET` | `/api/signalements/:id` | à venir |
-| `PATCH` | `/api/signalements/:id/statut` | à venir |
-| `POST` | `/api/signalements/:id/resolution[/confirm\|/reopen]` | à venir |
+| `GET` | `/api/signalements/:id` | disponible |
+| `PATCH` | `/api/signalements/:id/statut` | disponible |
+| `POST` | `/api/signalements/:id/resolution` | disponible — propose (rôle CITOYEN/ADMIN) |
+| `POST` | `/api/signalements/:id/resolution/confirm` | disponible |
+| `POST` | `/api/signalements/:id/resolution/reopen` | disponible — « toujours endommagé » |
+| `POST` | `/api/signalements/jobs/expiration-resolution` | disponible — job J+7 manuel |
 | `GET` | `/api/notifications` | à venir |
 
 ---

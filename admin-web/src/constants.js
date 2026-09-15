@@ -1,5 +1,3 @@
-// Vocabulaire métier partagé avec le mobile et le backend (§2.6 des règles de code).
-
 export const STATUTS = [
   'EN_ATTENTE_SYNC',
   'ENVOYE',
@@ -10,6 +8,24 @@ export const STATUTS = [
   'RESOLU_CONFIRME',
   'REOUVERT_NON_RESOLU',
 ];
+
+// Les statuts de résolution passent par POST /resolution, pas PATCH.
+export const STATUTS_TRIAGE_ADMIN = [
+  'ENVOYE',
+  'A_VERIFIER',
+  'PRIS_EN_CHARGE',
+  'REJETE',
+];
+
+export const STATUTS_PROPOSITION_RESOLUTION = [
+  'PRIS_EN_CHARGE',
+  'REOUVERT_NON_RESOLU',
+];
+
+export const ROLES_RESOLUTION = {
+  CITOYEN: 'CITOYEN',
+  ADMIN: 'ADMIN',
+};
 
 export const CATEGORIES = ['ROUTE', 'DECHETS', 'ECLAIRAGE', 'DRAINAGE', 'PONT'];
 
@@ -31,3 +47,7 @@ export const LIBELLES_CATEGORIE = {
   DRAINAGE: 'Drainage',
   PONT: 'Pont / ouvrage',
 };
+
+export function estStatutTriage(statut) {
+  return STATUTS_TRIAGE_ADMIN.includes(statut);
+}

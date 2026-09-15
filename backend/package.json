@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "db:init": "node src/db/init.js",
+    "job:j7": "node scripts/run-j7-job.js",
+    "seed:j2": "node scripts/seed-j2-demo.js",
+    "seed:j6": "node scripts/seed-j6-demo.js",
+    "health": "node scripts/check-demo-health.js"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +21,9 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "multer": "^2.3.0"
+    "multer": "^2.3.0",
+    "node-cron": "^3.0.3",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

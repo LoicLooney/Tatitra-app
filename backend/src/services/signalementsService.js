@@ -1,52 +1,99 @@
-const crypto = require('crypto');
+const db = require('../db');
 const { STATUT_PAR_DEFAUT } = require('../constants');
+const { ErreurApi } = require('../middleware/errorHandler');
 
-// Mémoire temporaire — remplacé plus tard par PostgreSQL / Supabase (src/db).
-const signalements = [];
-
-// Index clientId -> signalement : support de l'idempotence, remplacé côté base
-// par la contrainte UNIQUE sur signalements.client_id.
-const parClientId = new Map();
-
-exports.lister = async () => signalements;
-
-exports.recupererParClientId = async (clientId) => parClientId.get(clientId) || null;
-
-/**
- * Crée un signalement à partir d'un corps déjà validé.
- *
- * Idempotence : une synchronisation rejouée (perte de réseau après l'envoi, reprise
- * du WorkManager) renvoie le signalement existant au lieu d'en créer un doublon.
- * `cree` indique au contrôleur s'il doit répondre 201 ou 200.
- */
-exports.creer = async (payload) => {
-  const existant = parClientId.get(payload.clientId);
-  if (existant) {
-    return { signalement: existant, cree: false };
-  }
-
-  const signalement = {
-    id: genererIdentifiant(),
-    clientId: payload.clientId,
-    categorie: payload.categorie,
-    description: payload.description,
-    latitude: payload.latitude,
-    longitude: payload.longitude,
-    photoUrl: payload.photoUrl,
-    statut: STATUT_PAR_DEFAUT,
-    isDemo: payload.isDemo,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+function versApi(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    categorie: row.categorie,
+    description: row.description,
+    latitude: row.latitude !== null ? Number(row.latitude) : null,
+    longitude: row.longitude !== null ? Number(row.longitude) : null,
+    photoUrl: row.photo_url,
+    statut: row.statut,
+    isDemo: row.is_demo,
+    createdAt: row.date_creation,
+    updatedAt: row.date_modification,
+    resolutionProposeePar: row.resolution_proposee_par || null,
+    resolutionProposeeLe: row.resolution_proposee_le || null,
+    dateLimiteConfirmation: row.date_limite_confirmation || null,
+    resolutionConfirmeeLe: row.resolution_confirmee_le || null,
+    dateReouverture: row.date_reouverture || null,
+    motifReouverture: row.motif_reouverture || null,
   };
+}
 
-  signalements.push(signalement);
-  parClientId.set(signalement.clientId, signalement);
-  return { signalement, cree: true };
+exports.versApi = versApi;
+
+const SELECT_COMPLET = `
+  SELECT
+    id, client_id, categorie, description, latitude, longitude, photo_url, statut,
+    resolution_proposee_par, resolution_proposee_le, date_limite_confirmation,
+    resolution_confirmee_le, date_reouverture, motif_reouverture,
+    is_demo, date_creation, date_modification
+  FROM signalements
+`;
+
+exports.lister = async () => {
+  const result = await db.query(`${SELECT_COMPLET} ORDER BY date_creation DESC`);
+  return result.rows.map(versApi);
 };
 
-/** Identifiant lisible, du même format que celui prévu côté base (SIG-000125). */
-function genererIdentifiant() {
-  const numero = String(signalements.length + 1).padStart(6, '0');
-  const suffixe = crypto.randomBytes(2).toString('hex');
-  return `SIG-${numero}-${suffixe}`;
-}
+exports.recupererParId = async (id) => {
+  const result = await db.query(`${SELECT_COMPLET} WHERE id = $1`, [id]);
+  const signalement = versApi(result.rows[0]);
+  if (!signalement) {
+    throw new ErreurApi(404, `Signalement introuvable : ${id}`);
+  }
+  return signalement;
+};
+
+exports.creer = async (payload) => {
+  // ON CONFLICT : évite 23505 si deux syncs concurrentes créent le même client_id.
+  const result = await db.query(
+    `INSERT INTO signalements
+       (client_id, categorie, description, latitude, longitude, photo_url, statut, is_demo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (client_id) DO NOTHING
+     RETURNING *`,
+    [
+      payload.clientId,
+      payload.categorie,
+      payload.description,
+      payload.latitude,
+      payload.longitude,
+      payload.photoUrl,
+      STATUT_PAR_DEFAUT,
+      payload.isDemo === true,
+    ]
+  );
+
+  if (result.rows[0]) {
+    return { signalement: versApi(result.rows[0]), cree: true };
+  }
+
+  const existant = await db.query(`${SELECT_COMPLET} WHERE client_id = $1`, [
+    payload.clientId,
+  ]);
+  if (!existant.rows[0]) {
+    throw new ErreurApi(500, 'Création conflictuelle sans ligne existante');
+  }
+  return { signalement: versApi(existant.rows[0]), cree: false };
+};
+
+exports.mettreAJourStatut = async (id, statut) => {
+  const result = await db.query(
+    `UPDATE signalements
+        SET statut = $1, date_modification = NOW()
+      WHERE id = $2
+      RETURNING *`,
+    [statut, id]
+  );
+  const signalement = versApi(result.rows[0]);
+  if (!signalement) {
+    throw new ErreurApi(404, `Signalement introuvable : ${id}`);
+  }
+  return signalement;
+};

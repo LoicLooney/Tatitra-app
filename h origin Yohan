@@ -1,0 +1,13 @@
+[33mf40002e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mYohan[m[33m)[m docs: ajoute le guide d'installation du projet
+[33m6b146e5[m feat(admin): ajoute le tableau de bord, les filtres et les paramètres
+[33m1dda4ab[m feat(admin): pose le socle de l'interface d'administration
+[33mdb79997[m feat(backend): stocke les photos sur Supabase Storage
+[33m2cd1efd[m feat(backend): valide les signalements et rend la création idempotente
+[33m27c8bc8[m feat(mobile): ajoute les écrans Accueil et Nouveau signalement
+[33m9379fea[m feat(mobile): applique l'identité visuelle TATITRA
+[33m018089f[m feat(mobile): ajoute la capture photo et la localisation
+[33mf807ea6[m feat(mobile): synchronise les signalements en attente via WorkManager
+[33m3e09f99[m feat(mobile): ajoute le client Retrofit de l'API
+[33m386177f[m feat(mobile): ajoute la persistance locale Room
+[33mbd6929a[m feat(mobile): définit le vocabulaire métier des signalements
+[33m979d016[m build(mobile): ajoute Room, Retrofit, WorkManager, Navigation et Coil

@@ -21,7 +21,10 @@ fun SignalementEntity.versDomaine(): Signalement = Signalement(
     serverId = serverId,
     dateCreation = dateCreation,
     isDemo = isDemo,
-    derniereErreurSync = derniereErreurSync
+    derniereErreurSync = derniereErreurSync,
+    resolutionProposeePar = resolutionProposeePar,
+    dateLimiteConfirmation = dateLimiteConfirmation,
+    motifReouverture = motifReouverture
 )
 
 fun Signalement.versEntity(): SignalementEntity = SignalementEntity(
@@ -37,5 +40,8 @@ fun Signalement.versEntity(): SignalementEntity = SignalementEntity(
     serverId = serverId,
     dateCreation = dateCreation,
     isDemo = isDemo,
-    derniereErreurSync = derniereErreurSync
+    derniereErreurSync = derniereErreurSync,
+    resolutionProposeePar = resolutionProposeePar,
+    dateLimiteConfirmation = dateLimiteConfirmation,
+    motifReouverture = motifReouverture
 )

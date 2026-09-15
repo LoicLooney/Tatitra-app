@@ -6,7 +6,10 @@ import kotlinx.coroutines.flow.map
 import mg.itu.tatitra_app.data.local.SignalementDao
 import mg.itu.tatitra_app.data.local.SignalementEntity
 import mg.itu.tatitra_app.data.local.versDomaine
+import mg.itu.tatitra_app.data.remote.ResolutionReopenRequest
+import mg.itu.tatitra_app.data.remote.ResolutionRoleRequest
 import mg.itu.tatitra_app.data.remote.SignalementRequest
+import mg.itu.tatitra_app.data.remote.SignalementResponse
 import mg.itu.tatitra_app.data.remote.TatitraApi
 import mg.itu.tatitra_app.domain.Categorie
 import mg.itu.tatitra_app.domain.Signalement
@@ -117,12 +120,20 @@ class SignalementRepository(
             val idLocal = distant.clientId ?: continue
             val local = dao.recupererParId(idLocal) ?: continue
             val statutDistant = StatutSignalement.depuisCode(distant.statut).name
-            if (local.statut != statutDistant || local.serverId != distant.id) {
+            if (local.statut != statutDistant ||
+                local.serverId != distant.id ||
+                local.resolutionProposeePar != distant.resolutionProposeePar ||
+                local.dateLimiteConfirmation != distant.dateLimiteConfirmation ||
+                local.motifReouverture != distant.motifReouverture
+            ) {
                 dao.mettreAJour(
                     local.copy(
                         statut = statutDistant,
                         serverId = distant.id,
-                        photoUrl = distant.photoUrl ?: local.photoUrl
+                        photoUrl = distant.photoUrl ?: local.photoUrl,
+                        resolutionProposeePar = distant.resolutionProposeePar,
+                        dateLimiteConfirmation = distant.dateLimiteConfirmation,
+                        motifReouverture = distant.motifReouverture
                     )
                 )
             }
@@ -134,6 +145,96 @@ class SignalementRepository(
     } catch (erreur: HttpException) {
         Log.w(TAG, "Rafraîchissement des statuts refusé par le serveur : ${erreur.code()}")
         false
+    }
+
+    /**
+     * Relit le détail serveur d'un signalement synchronisé (champs résolution J5).
+     */
+    suspend fun recupererDetailServeur(idLocal: String): SignalementResponse? {
+        val local = dao.recupererParId(idLocal) ?: return null
+        val serverId = local.serverId ?: return null
+        return try {
+            val distant = api.recupererSignalement(serverId)
+            appliquerDistant(local, distant)
+            distant
+        } catch (erreur: IOException) {
+            Log.w(TAG, "Détail serveur indisponible : ${erreur.message}")
+            null
+        } catch (erreur: HttpException) {
+            Log.w(TAG, "Détail serveur refusé : ${erreur.code()}")
+            null
+        }
+    }
+
+    /** Citoyen propose une résolution (J5). */
+    suspend fun proposerResolution(idLocal: String): ResultatActionResolution =
+        executerResolution(idLocal) { serverId ->
+            api.proposerResolution(serverId, ResolutionRoleRequest(ROLE_CITOYEN), ROLE_CITOYEN)
+        }
+
+    /** Citoyen confirme une résolution proposée par l'admin. */
+    suspend fun confirmerResolution(idLocal: String): ResultatActionResolution =
+        executerResolution(idLocal) { serverId ->
+            api.confirmerResolution(serverId, ResolutionRoleRequest(ROLE_CITOYEN), ROLE_CITOYEN)
+        }
+
+    /** Citoyen déclare « toujours endommagé ». */
+    suspend fun declarerToujoursEndommage(idLocal: String): ResultatActionResolution =
+        executerResolution(idLocal) { serverId ->
+            api.rouvrirResolution(
+                serverId,
+                ResolutionReopenRequest(motif = "Toujours endommagé")
+            )
+        }
+
+    private suspend fun executerResolution(
+        idLocal: String,
+        appel: suspend (serverId: String) -> SignalementResponse
+    ): ResultatActionResolution {
+        val local = dao.recupererParId(idLocal)
+            ?: return ResultatActionResolution.Echec("Signalement introuvable.")
+        val serverId = local.serverId
+            ?: return ResultatActionResolution.Echec(
+                "Synchronisez d'abord ce signalement avant une action de résolution."
+            )
+        return try {
+            val distant = appel(serverId)
+            appliquerDistant(local, distant)
+            ResultatActionResolution.Succes(distant)
+        } catch (erreur: IOException) {
+            ResultatActionResolution.Echec("Serveur injoignable : ${erreur.message ?: "réseau"}")
+        } catch (erreur: HttpException) {
+            ResultatActionResolution.Echec(lireMessageHttp(erreur))
+        }
+    }
+
+    private suspend fun appliquerDistant(local: SignalementEntity, distant: SignalementResponse) {
+        val actuel = dao.recupererParId(local.idLocal) ?: local
+        dao.mettreAJour(
+            actuel.copy(
+                synchronise = true,
+                serverId = distant.id,
+                photoUrl = distant.photoUrl ?: actuel.photoUrl,
+                statut = StatutSignalement.depuisCode(distant.statut).name,
+                derniereErreurSync = null,
+                resolutionProposeePar = distant.resolutionProposeePar,
+                dateLimiteConfirmation = distant.dateLimiteConfirmation,
+                motifReouverture = distant.motifReouverture
+            )
+        )
+    }
+
+    private fun lireMessageHttp(erreur: HttpException): String {
+        val corps = try {
+            erreur.response()?.errorBody()?.string()
+        } catch (_: Exception) {
+            null
+        }
+        return if (!corps.isNullOrBlank()) {
+            "Refus du serveur : $corps"
+        } else {
+            "Refus du serveur (HTTP ${erreur.code()})"
+        }
     }
 
     /** Envoie la photo puis les métadonnées d'un signalement. */
@@ -154,13 +255,18 @@ class SignalementRepository(
                 isDemo = local.isDemo
             )
         )
+        // Relire la ligne : l'URL photo a pu être écrite juste avant.
+        val actuel = dao.recupererParId(local.idLocal) ?: local
         dao.mettreAJour(
-            local.copy(
+            actuel.copy(
                 synchronise = true,
                 serverId = distant.id,
-                photoUrl = photoUrl ?: distant.photoUrl,
+                photoUrl = photoUrl ?: distant.photoUrl ?: actuel.photoUrl,
                 statut = StatutSignalement.depuisCode(distant.statut).name,
-                derniereErreurSync = null
+                derniereErreurSync = null,
+                resolutionProposeePar = distant.resolutionProposeePar,
+                dateLimiteConfirmation = distant.dateLimiteConfirmation,
+                motifReouverture = distant.motifReouverture
             )
         )
         EnvoiSignalement.Succes
@@ -208,5 +314,12 @@ class SignalementRepository(
     private companion object {
         const val TAG = "SignalementRepository"
         const val TYPE_IMAGE = "image/jpeg"
+        const val ROLE_CITOYEN = "CITOYEN"
     }
+}
+
+/** Résultat d'une action de résolution (proposer / confirmer / rouvrir). */
+sealed interface ResultatActionResolution {
+    data class Succes(val distant: SignalementResponse) : ResultatActionResolution
+    data class Echec(val message: String) : ResultatActionResolution
 }

@@ -24,5 +24,9 @@ data class SignalementEntity(
     val serverId: String? = null,
     val dateCreation: Long,
     @ColumnInfo(defaultValue = "1") val isDemo: Boolean = true,
-    @ColumnInfo(defaultValue = "NULL") val derniereErreurSync: String? = null
+    @ColumnInfo(defaultValue = "NULL") val derniereErreurSync: String? = null,
+    /** ADMIN ou CITOYEN — nécessaire pour afficher confirmer / attendre hors ligne. */
+    @ColumnInfo(defaultValue = "NULL") val resolutionProposeePar: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val dateLimiteConfirmation: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val motifReouverture: String? = null
 )
