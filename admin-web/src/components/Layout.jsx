@@ -1,4 +1,4 @@
-/** Ossature commune des pages d'administration : en-tête, navigation, contenu. */
+/** Ossature commune : en-tête TATITRA (logos public/), navigation, contenu. */
 function Layout({ pageActive, onChangerPage, session, children }) {
   const onglets = [
     { cle: 'tableau-de-bord', libelle: 'Tableau de bord' },
@@ -8,8 +8,21 @@ function Layout({ pageActive, onChangerPage, session, children }) {
   return (
     <div className="admin-layout">
       <header className="admin-header">
-        <img src="/logo_tatitra_horizontal.png" alt="TATITRA" className="admin-logo" />
-        <nav className="admin-nav">
+        <a href="/" className="admin-marque" aria-label="TATITRA — accueil administration">
+          <img
+            src="/logo_symbole.png"
+            alt=""
+            className="admin-logo-symbole"
+            width={32}
+            height={32}
+          />
+          <img
+            src="/logo_tatitra_horizontal.png"
+            alt="TATITRA"
+            className="admin-logo"
+          />
+        </a>
+        <nav className="admin-nav" aria-label="Navigation principale">
           {onglets.map((onglet) => (
             <button
               key={onglet.cle}
@@ -29,8 +42,11 @@ function Layout({ pageActive, onChangerPage, session, children }) {
       <main className="admin-contenu">{children}</main>
 
       <footer className="admin-footer">
-        TATITRA — Interface d'administration. Les signalements marqués « démonstration »
-        sont des incidents simulés.
+        <img src="/logo_symbole.png" alt="" className="admin-footer-symbole" width={20} height={20} />
+        <span>
+          TATITRA — Interface d&apos;administration. Les signalements marqués « démonstration »
+          sont des incidents simulés.
+        </span>
       </footer>
     </div>
   );

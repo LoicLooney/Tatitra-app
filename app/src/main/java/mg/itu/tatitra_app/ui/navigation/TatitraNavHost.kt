@@ -32,7 +32,9 @@ fun TatitraNavHost(
                     navController.navigate(DestinationsTatitra.SIGNALEMENTS)
                 },
                 onOuvrirSignalement = { idLocal ->
-                    navController.navigate(DestinationsTatitra.detailSignalement(idLocal))
+                    navController.navigate(DestinationsTatitra.detailSignalement(idLocal)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -50,10 +52,16 @@ fun TatitraNavHost(
             EcranMesSignalementsRoute(
                 onRetour = { navController.popBackStack() },
                 onOuvrirSignalement = { idLocal ->
-                    navController.navigate(DestinationsTatitra.detailSignalement(idLocal))
+                    navController.navigate(DestinationsTatitra.detailSignalement(idLocal)) {
+                        launchSingleTop = true
+                    }
                 },
                 onOuvrirConfirmation = { idLocal ->
-                    navController.navigate(DestinationsTatitra.confirmationResolution(idLocal))
+                    navController.navigate(
+                        DestinationsTatitra.confirmationResolution(idLocal)
+                    ) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -69,7 +77,11 @@ fun TatitraNavHost(
                 idLocal = idLocal,
                 onRetour = { navController.popBackStack() },
                 onOuvrirConfirmation = {
-                    navController.navigate(DestinationsTatitra.confirmationResolution(idLocal))
+                    navController.navigate(
+                        DestinationsTatitra.confirmationResolution(idLocal)
+                    ) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }

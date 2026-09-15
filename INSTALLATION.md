@@ -53,7 +53,11 @@ cp .env.example .env
 npm run dev          # ou : npm start
 ```
 
-Vérification : `http://localhost:3000/health` doit répondre `{"status":"ok"}`.
+Vérification : `http://localhost:3000/health` doit répondre `{"status":"ok","db":"up"}`
+(ou `npm run health` dans `backend/`).
+
+Le serveur écoute sur `0.0.0.0` : accessible depuis le téléphone de démo sur le même Wi-Fi
+(`http://IP_DU_PC:3000/health`).
 
 ### Variables d’environnement (`backend/.env`)
 
@@ -82,7 +86,7 @@ Invite member*) et lis les clés toi-même dans *Project Settings → API Keys*.
 ```bash
 cd admin-web
 npm install
-npm run dev          # http://localhost:5173
+npm run dev          # http://localhost:5173 (+ URL Network pour le téléphone)
 ```
 
 Aucune configuration n’est nécessaire : l’interface vise `http://localhost:3000` par défaut, et
