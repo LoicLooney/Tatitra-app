@@ -28,8 +28,10 @@ fun TatitraNavHost(
                 onNouveauSignalement = {
                     navController.navigate(DestinationsTatitra.NOUVEAU_SIGNALEMENT)
                 },
+                // « Tout voir » mène à l'onglet Signalements : on y va comme la barre basse,
+                // sans quoi la pile obtenue rend ensuite l'onglet « Accueil » inopérant.
                 onVoirMesSignalements = {
-                    navController.navigate(DestinationsTatitra.SIGNALEMENTS)
+                    naviguerVersOnglet(navController, DestinationsTatitra.SIGNALEMENTS)
                 },
                 onOuvrirSignalement = { idLocal ->
                     navController.navigate(DestinationsTatitra.detailSignalement(idLocal)) {
