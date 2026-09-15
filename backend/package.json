@@ -9,7 +9,8 @@
     "db:init": "node src/db/init.js",
     "job:j7": "node scripts/run-j7-job.js",
     "seed:j2": "node scripts/seed-j2-demo.js",
-    "seed:j6": "node scripts/seed-j6-demo.js"
+    "seed:j6": "node scripts/seed-j6-demo.js",
+    "health": "node scripts/check-demo-health.js"
   },
   "keywords": [],
   "author": "",

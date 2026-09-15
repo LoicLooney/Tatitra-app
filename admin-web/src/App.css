@@ -15,8 +15,25 @@
   flex-wrap: wrap;
 }
 
+.admin-marque {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.admin-logo-symbole {
+  display: block;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
 .admin-logo {
   height: 36px;
+  width: auto;
+  display: block;
 }
 
 .admin-nav {
@@ -55,9 +72,17 @@
 }
 
 .admin-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 16px 32px;
   border-top: 1px solid var(--bordure);
   font-size: 13px;
+}
+
+.admin-footer-symbole {
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
 /* Pages et cartes */

@@ -26,8 +26,9 @@ app.use('/uploads', express.static(uploadService.DOSSIER_LOCAL));
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`API TATITRA démarrée sur http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`API TATITRA démarrée sur http://0.0.0.0:${PORT}`);
+  console.log(`Santé : http://localhost:${PORT}/health`);
   console.log(`Stockage des photos : ${uploadService.modeStockage()}`);
   demarrerCronResolution();
 });
