@@ -73,8 +73,15 @@ fun TatitraApp(
     }
 }
 
-/** Évite d'empiler indéfiniment les onglets dans la back stack (S5). */
-private fun naviguerVersOnglet(navController: NavHostController, route: String) {
+/**
+ * Évite d'empiler indéfiniment les onglets dans la back stack (S5).
+ *
+ * Tout chemin menant à une destination d'onglet doit passer par ici, y compris les
+ * raccourcis internes comme « Tout voir » : un `navigate` ordinaire vers un onglet
+ * construit une pile que la barre basse ne sait plus dépiler, et l'onglet « Accueil »
+ * devient alors sans effet.
+ */
+internal fun naviguerVersOnglet(navController: NavHostController, route: String) {
     navController.navigate(route) {
         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true

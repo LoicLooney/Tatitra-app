@@ -36,6 +36,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    testOptions {
+        unitTests {
+            // android.util.Log est un stub sur la JVM : sans ceci, tout appel à Log lève
+            // une exception au lieu de ne rien faire.
+            isReturnDefaultValues = true
+        }
+    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -83,6 +90,7 @@ dependencies {
     implementation(libs.datastore.preferences)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

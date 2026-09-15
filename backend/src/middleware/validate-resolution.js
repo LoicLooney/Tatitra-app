@@ -52,7 +52,27 @@ function validerMotifReouverture(req, res, next) {
   return next();
 }
 
+/**
+ * Réserve un endpoint au rôle ADMIN (job de maintenance J+7).
+ *
+ * Pourquoi : ce job change l'état de dossiers en base. Sans contrôle, n'importe qui
+ * pouvait le déclencher par un simple POST. Le niveau d'exigence suit la même règle que
+ * les autres actions ADMIN : clé obligatoire si TATITRA_ADMIN_KEY est définie.
+ */
+function exigerRoleAdmin(req, res, next) {
+  return validerRoleResolution(req, res, () => {
+    if (req.roleResolution !== 'ADMIN') {
+      return res.status(403).json({
+        error: 'Action réservée à l’administration',
+        details: [`rôle ${req.roleResolution} insuffisant pour cette opération`],
+      });
+    }
+    return next();
+  });
+}
+
 module.exports = {
   validerRoleResolution,
   validerMotifReouverture,
+  exigerRoleAdmin,
 };

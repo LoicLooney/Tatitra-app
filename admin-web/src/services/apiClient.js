@@ -35,9 +35,13 @@ export async function requeteApi(chemin, options = {}) {
   const url = `${getApiUrl()}${chemin}`;
   let reponse;
   try {
+    // L'ordre compte : « ...options » doit précéder « headers ». Placé après, il
+    // remplaçait l'objet d'en-têtes entier dès qu'un appel fournissait les siens,
+    // faisant disparaître Content-Type — Express cessait alors de lire le corps et
+    // le motif de réouverture était silencieusement remplacé par sa valeur par défaut.
     reponse = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...options.headers },
       ...options,
+      headers: { 'Content-Type': 'application/json', ...options.headers },
     });
   } catch {
     // fetch ne lève que « Failed to fetch » : on nomme la cause réelle pour l'agent.
