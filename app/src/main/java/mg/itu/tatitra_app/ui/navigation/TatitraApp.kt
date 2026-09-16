@@ -1,10 +1,12 @@
 package mg.itu.tatitra_app.ui.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -12,8 +14,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import mg.itu.tatitra_app.ui.auth.EcranConnexionRoute
+import mg.itu.tatitra_app.ui.auth.SessionViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -39,8 +46,32 @@ private val ONGLETS = listOf(
 @Composable
 fun TatitraApp(
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    sessionViewModel: SessionViewModel = viewModel(factory = SessionViewModel.Factory)
 ) {
+    val session by sessionViewModel.uiState.collectAsStateWithLifecycle()
+
+    // Tant que le DataStore n'a pas répondu, on n'affiche ni l'accueil ni la connexion :
+    // faire clignoter l'écran de connexion devant un utilisateur déjà identifié serait pire
+    // qu'une brève attente.
+    if (session.chargement) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    // L'écran de connexion remplace toute l'application plutôt que d'entrer dans le graphe :
+    // la destination de départ reste ainsi « accueil », ce dont dépend la barre d'onglets.
+    if (!session.accesOuvert) {
+        EcranConnexionRoute(
+            onConnecte = {},
+            onModeDemonstration = {},
+            modifier = modifier
+        )
+        return
+    }
+
     val entreeCourante by navController.currentBackStackEntryAsState()
     val destinationCourante = entreeCourante?.destination
     val barreVisible = ONGLETS.any { onglet ->
