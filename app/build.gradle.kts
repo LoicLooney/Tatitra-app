@@ -1,11 +1,42 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
 
-val apiBaseUrl: String = (project.findProperty("tatitra.apiBaseUrl") as String?)
-    ?: "http://10.0.2.2:3000/"
+/**
+ * Lit un réglage, dans l'ordre : option de ligne de commande (-P) ou gradle.properties,
+ * puis local.properties.
+ *
+ * Gradle n'expose pas local.properties comme propriété de projet — le plugin Android n'y
+ * lit que sdk.dir — il faut donc l'ouvrir explicitement. C'est pourtant le bon endroit
+ * pour ces valeurs : le fichier est ignoré par Git, contrairement à gradle.properties.
+ */
+val proprietesLocales = Properties().apply {
+    val fichier = rootProject.file("local.properties")
+    if (fichier.exists()) fichier.inputStream().use { load(it) }
+}
+
+fun reglage(cle: String, parDefaut: String = ""): String =
+    (project.findProperty(cle) as String?)
+        ?: proprietesLocales.getProperty(cle)
+        ?: parDefaut
+
+val apiBaseUrl: String = reglage("tatitra.apiBaseUrl", "http://10.0.2.2:3000/")
+
+// Authentification Supabase. Les deux valeurs se placent dans local.properties ou
+// gradle.properties (tous deux ignorés par Git) — jamais en dur dans le code.
+//
+// La clé attendue est la clé PUBLIABLE (« sb_publishable_… », anciennement « anon ») :
+// elle est conçue pour être embarquée dans une application cliente. La clé secrète
+// « sb_secret_… » du backend ne doit jamais se retrouver ici.
+//
+// Laissées vides, l'application démarre quand même : l'écran de connexion explique
+// que l'authentification n'est pas configurée et le mode démonstration reste ouvert.
+val supabaseUrl: String = reglage("tatitra.supabaseUrl")
+val supabaseAnonKey: String = reglage("tatitra.supabaseAnonKey")
 
 android {
     namespace = "mg.itu.tatitra_app"
@@ -23,6 +54,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
 
     buildTypes {
