@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import mg.itu.tatitra_app.R
 import mg.itu.tatitra_app.domain.Signalement
+import mg.itu.tatitra_app.ui.auth.SessionViewModel
 import mg.itu.tatitra_app.ui.components.StatutBadge
 import mg.itu.tatitra_app.ui.theme.TatitraappTheme
 import mg.itu.tatitra_app.util.formaterDateHeure
@@ -58,9 +60,11 @@ fun EcranAccueilRoute(
     onVoirMesSignalements: () -> Unit,
     onOuvrirSignalement: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: AccueilViewModel = viewModel(factory = AccueilViewModel.Factory)
+    viewModel: AccueilViewModel = viewModel(factory = AccueilViewModel.Factory),
+    sessionViewModel: SessionViewModel = viewModel(factory = SessionViewModel.Factory)
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val session by sessionViewModel.uiState.collectAsStateWithLifecycle()
 
     EcranAccueil(
         uiState = uiState,
@@ -69,7 +73,9 @@ fun EcranAccueilRoute(
         onOuvrirSignalement = onOuvrirSignalement,
         onSynchroniser = viewModel::synchroniserMaintenant,
         onMessageAffiche = viewModel::messageAffiche,
-        modifier = modifier
+        modifier = modifier,
+        nomUtilisateur = session.session?.nomAffiche,
+        onQuitterLaSession = sessionViewModel::seDeconnecter
     )
 }
 
@@ -81,7 +87,10 @@ fun EcranAccueil(
     onOuvrirSignalement: (String) -> Unit,
     onSynchroniser: () -> Unit,
     onMessageAffiche: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Null en mode démonstration : aucun compte n'est ouvert. */
+    nomUtilisateur: String? = null,
+    onQuitterLaSession: () -> Unit = {}
 ) {
     val etatSnackbar = remember { SnackbarHostState() }
 
@@ -122,7 +131,9 @@ fun EcranAccueil(
             )
 
             CartePreferences(
-                derniereSyncMs = uiState.derniereSyncMs
+                derniereSyncMs = uiState.derniereSyncMs,
+                nomUtilisateur = nomUtilisateur,
+                onQuitterLaSession = onQuitterLaSession
             )
 
             SectionSignalementsRecents(
@@ -153,6 +164,8 @@ private fun EnteteTatitra(modifier: Modifier = Modifier) {
 @Composable
 private fun CartePreferences(
     derniereSyncMs: Long?,
+    nomUtilisateur: String?,
+    onQuitterLaSession: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -171,6 +184,19 @@ private fun CartePreferences(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Text(
+                text = "Compte : " + (nomUtilisateur ?: "mode démonstration"),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(
+                onClick = onQuitterLaSession,
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                // En mode démonstration, quitter la session ramène simplement à l'écran
+                // de connexion : le libellé annonce donc ce qui va réellement se passer.
+                Text(if (nomUtilisateur == null) "Se connecter" else "Se déconnecter")
+            }
         }
     }
 }

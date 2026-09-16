@@ -4,6 +4,8 @@ import android.app.Application
 import mg.itu.tatitra_app.data.local.PreferencesDataStore
 import mg.itu.tatitra_app.data.local.TatitraDatabase
 import mg.itu.tatitra_app.data.remote.ApiClient
+import mg.itu.tatitra_app.data.remote.SupabaseAuthClient
+import mg.itu.tatitra_app.data.repository.AuthRepository
 import mg.itu.tatitra_app.data.repository.PreferencesRepository
 import mg.itu.tatitra_app.data.repository.SignalementRepository
 import mg.itu.tatitra_app.worker.SyncScheduler
@@ -25,6 +27,13 @@ class ConteneurApplication(application: Application) {
 
     val preferencesRepository: PreferencesRepository by lazy {
         PreferencesRepository(preferencesDataStore)
+    }
+
+    val authRepository: AuthRepository by lazy {
+        AuthRepository(
+            api = SupabaseAuthClient.api,
+            preferences = preferencesDataStore
+        )
     }
 }
 

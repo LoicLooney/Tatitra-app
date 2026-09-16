@@ -121,16 +121,53 @@ Autres commandes : `npm run lint`, `npm run build`.
 
 ### Quelle adresse d’API choisir ?
 
-L’URL est injectée à la compilation dans `BuildConfig.API_BASE_URL`.
+L’URL est injectée à la compilation dans `BuildConfig.API_BASE_URL`. Elle est lue dans cet ordre :
+option `-P` en ligne de commande, puis `gradle.properties`, puis `local.properties`.
+
+`gradle.properties` (versionné) fixe `tatitra.apiBaseUrl=http://127.0.0.1:3000/`. **Cette valeur
+suppose `adb reverse`**, qui fonctionne aussi bien sur émulateur que sur téléphone :
+
+```bash
+adb reverse tcp:3000 tcp:3000     # à refaire après chaque redémarrage de l’appareil
+./gradlew :app:installDebug
+```
 
 | Situation | Commande |
 |-----------|----------|
-| Émulateur Android | valeur par défaut `http://10.0.2.2:3000/` — rien à faire |
-| **Téléphone en USB** (le plus fiable) | `adb reverse tcp:3000 tcp:3000` puis `./gradlew :app:installDebug -Ptatitra.apiBaseUrl=http://localhost:3000/` |
+| **Émulateur ou téléphone USB** (le plus fiable) | `adb reverse tcp:3000 tcp:3000` puis `./gradlew :app:installDebug` |
+| Émulateur sans `adb reverse` | `./gradlew :app:installDebug -Ptatitra.apiBaseUrl=http://10.0.2.2:3000/` |
 | Téléphone en Wi-Fi | `./gradlew :app:installDebug -Ptatitra.apiBaseUrl=http://IP_DU_PC:3000/` (même réseau) |
 
-`adb reverse` fait passer le port 3000 par le câble USB : pas d’IP à chercher, et ça marche même
-sans Wi-Fi.
+`adb reverse` fait passer le port 3000 par le câble USB ou le canal de l’émulateur : pas d’IP à
+chercher, et ça marche même sans Wi-Fi. `10.0.2.2` est l’adresse de l’hôte vue **uniquement** depuis
+un émulateur ; `127.0.0.1` sans `adb reverse` désignerait l’appareil lui-même et échouerait.
+
+### Connexion Supabase (écran de login)
+
+L’application s’ouvre sur un écran de connexion relié à **Supabase Auth** (e-mail + mot de passe).
+Il reste franchissable : le bouton **« Continuer en mode démonstration »** entre dans l’application
+sans compte — l’offline-first est préservé, on peut signaler sans réseau dès le premier lancement.
+
+Deux valeurs sont à placer dans `local.properties` (fichier **jamais versionné**) :
+
+```properties
+tatitra.supabaseUrl=https://<ref-projet>.supabase.co
+tatitra.supabaseAnonKey=sb_publishable_xxxxxxxxxxxxxxxx
+```
+
+⚠️ La clé attendue est la clé **publiable** (*Project Settings → API Keys → Publishable key*,
+anciennement « anon »). Elle est conçue pour être embarquée dans une application cliente. La clé
+`sb_secret_…` du backend ne doit **jamais** figurer ici : elle contourne toutes les règles d’accès.
+
+Côté Supabase, activer *Authentication → Sign In / Providers → **Email***.
+Si l’option **Confirm email** y est cochée, « Créer un compte » n’ouvre pas de session
+immédiatement : l’application affiche alors qu’un lien de confirmation a été envoyé.
+
+Sans ces deux valeurs, l’application se lance quand même : l’écran de connexion annonce que
+l’authentification n’est pas configurée et seul le mode démonstration est proposé.
+
+L’authentification par **téléphone** affichée dans le prototype n’est pas activée : Supabase exige
+pour cela un fournisseur SMS payant. Saisir un numéro affiche un message qui l’explique.
 
 ### Tests unitaires
 
@@ -138,13 +175,15 @@ sans Wi-Fi.
 ./gradlew :app:testDebugUnitTest
 ```
 
-48 tests : règles de saisie, conversions Room ↔ domaine, comportement du Repository en ligne /
-hors ligne / face à un refus serveur, et règles d’affichage des actions de résolution. Ils
-tournent sur la JVM avec une base et une API simulées — ni téléphone ni serveur requis.
+94 tests : règles de saisie, conversions Room ↔ domaine, comportement du Repository en ligne /
+hors ligne / face à un refus serveur, règles d’affichage des actions de résolution, et
+authentification (validation du formulaire, ouverture de session, confirmation d’e-mail requise,
+traduction des refus Supabase, mode démonstration). Ils tournent sur la JVM avec une base, une API
+et un stockage simulés — ni téléphone, ni serveur, ni compte Supabase requis.
 
 ⚠️ Ils échouent si le projet est stocké dans un dossier **contenant des accents**
 (`Développement Mobile`) : le worker de test Gradle ne retrouve pas ses classes. Les mêmes tests
-passent (48/48) depuis un chemin sans accent, par exemple `C:\dev\Tatitra-app`.
+passent (94/94) depuis un chemin sans accent, par exemple `C:\dev\Tatitra-app`.
 
 ---
 

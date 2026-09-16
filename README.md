@@ -7,6 +7,25 @@ MVP : photo + GPS + Room offline + synchronisation + API + admin Web + validatio
 
 ---
 
+## Aperçu
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/captures/mobile-connexion.png" alt="Écran de connexion Tatitra" width="270">
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/captures/mobile-accueil.png" alt="Écran d’accueil Tatitra" width="270">
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Connexion</b> — Supabase Auth, ou accès direct en mode démonstration</sub></td>
+    <td align="center"><sub><b>Accueil</b> — suivi des signalements, de l’envoi à la résolution confirmée</sub></td>
+  </tr>
+</table>
+
+---
+
 ## Séance 8
 
 Synthèse du module (Kotlin → coroutines → cycle de vie → Compose → navigation → MVVM → Room).  
@@ -38,6 +57,7 @@ Tatitra-app/
 ├── docs/
 │   ├── Cahier_des_charges_LALANA_v1.1.pdf
 │   ├── branding/
+│   ├── captures/                # Captures d’écran de l’application (README)
 │   └── prototypes/
 └── Photos/
     └── demo/
