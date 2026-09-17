@@ -1,4 +1,4 @@
-# Tatitra / LALANA
+# Tatitra
 
 Application citoyenne de signalement des problèmes d’infrastructures publiques  
 (Master 1 Développement Mobile — ITU).
