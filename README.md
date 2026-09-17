@@ -197,5 +197,5 @@ Tatitra-app/
 ---
 
 <div align="center">
-<sub>Master 1 Développement Mobile — Institut de Technologie d’Universités (ITU), Madagascar · 2026</sub>
+<sub>Master 1 Développement Mobile — ITU · 2026</sub>
 </div>
